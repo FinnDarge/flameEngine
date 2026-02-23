@@ -3,38 +3,39 @@ import 'character.dart';
 import 'player.dart';
 import 'game_grid.dart';
 import 'tile_type.dart';
+import 'game_scenario.dart';
 
 /// Manages the overall game state
 class GameState {
   /// The game grid
   final GameGrid grid;
-  
+
   /// This player (the one using this phone)
   late Player localPlayer;
-  
+
+  /// Selected game scenario
+  GameScenario? selectedScenario;
+
   /// All characters in the game (max 4)
   final List<Character> characters = [];
-  
+
   /// Current turn index (which character's turn is it)
   int currentTurnIndex = 0;
-  
+
   /// Game phase
-  GamePhase phase = GamePhase.characterSelection;
-  
+  GamePhase phase = GamePhase.scenarioSelection;
+
   /// Turn number
   int turnNumber = 1;
-  
+
   /// Goal position
   final Vector2 goalPosition;
-  
-  GameState({
-    required this.grid,
-    Vector2? goal,
-  }) : goalPosition = goal ?? Vector2(3, 3) { // (4,4) in 1-indexed = (3,3) in 0-indexed
+
+  GameState({required this.grid, Vector2? goal})
+    : goalPosition = goal ?? Vector2(3, 3) {
+    // (4,4) in 1-indexed = (3,3) in 0-indexed
     // Create local player with unique ID
-    localPlayer = Player(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-    );
+    localPlayer = Player(id: DateTime.now().millisecondsSinceEpoch.toString());
   }
 
   /// Get character whose turn it is
@@ -80,7 +81,9 @@ class GameState {
     }
 
     // Check if already claimed by someone
-    final alreadyClaimed = characters.any((c) => c.characterClass == characterClass);
+    final alreadyClaimed = characters.any(
+      (c) => c.characterClass == characterClass,
+    );
     if (alreadyClaimed) {
       print('⚠ Character already claimed: ${characterClass.name}');
       return false;
@@ -122,7 +125,10 @@ class GameState {
     }
 
     // Remove from old tile
-    final oldTile = grid.getTile(character.position.y.toInt(), character.position.x.toInt());
+    final oldTile = grid.getTile(
+      character.position.y.toInt(),
+      character.position.x.toInt(),
+    );
     if (oldTile != null) {
       oldTile.charactersHere.remove(character);
       oldTile.hasPlayer = oldTile.charactersHere.isNotEmpty;
@@ -135,7 +141,9 @@ class GameState {
     tile.charactersHere.add(character);
     tile.hasPlayer = true;
 
-    print('✓ ${character.name} moved to (${newPosition.x.toInt() + 1}, ${newPosition.y.toInt() + 1})');
+    print(
+      '✓ ${character.name} moved to (${newPosition.x.toInt() + 1}, ${newPosition.y.toInt() + 1})',
+    );
 
     // Check for goal
     if (newPosition.x == goalPosition.x && newPosition.y == goalPosition.y) {
@@ -175,7 +183,7 @@ class GameState {
     phase = GamePhase.playing;
     currentTurnIndex = 0;
     turnNumber = 1;
-    
+
     // Clear all character positions on tiles first
     for (int row = 0; row < grid.rows; row++) {
       for (int col = 0; col < grid.columns; col++) {
@@ -186,7 +194,7 @@ class GameState {
         }
       }
     }
-    
+
     // Place all characters at starting position
     final startTile = grid.getTile(0, 0);
     if (startTile != null) {
@@ -198,21 +206,26 @@ class GameState {
     }
 
     print('🎮 Game started! ${characters.length} players');
-    print('Goal: Reach (${goalPosition.x.toInt() + 1}, ${goalPosition.y.toInt() + 1})');
+    print(
+      'Goal: Reach (${goalPosition.x.toInt() + 1}, ${goalPosition.y.toInt() + 1})',
+    );
   }
 
   /// Check victory condition
   bool checkVictory() {
     // All characters must reach the goal
-    return characters.every((char) => 
-      char.position.x == goalPosition.x && 
-      char.position.y == goalPosition.y
+    return characters.every(
+      (char) =>
+          char.position.x == goalPosition.x &&
+          char.position.y == goalPosition.y,
     );
   }
 }
 
 /// Game phases
 enum GamePhase {
+  scenarioSelection,
+  puzzleGridSetup,
   characterSelection,
   playing,
   victory,

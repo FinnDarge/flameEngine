@@ -13,7 +13,7 @@ import 'package:flame_engine/main.dart';
 void main() {
   testWidgets('Dungeon game loads successfully', (WidgetTester tester) async {
     // Build our game and trigger a frame.
-    await tester.pumpWidget(const GameScreen());
+    await tester.pumpWidget(const MaterialApp(home: GameNavigator()));
     await tester.pumpAndSettle();
 
     // Verify the app bar is present
