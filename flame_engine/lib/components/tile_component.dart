@@ -74,15 +74,55 @@ class TileComponent extends PositionComponent {
       add(nfcMarker);
     }
 
-    // Add player marker if present
-    if (tile.hasPlayer) {
-      final playerMarker = CircleComponent(
-        radius: cellSize * 0.25,
-        position: size / 2,
-        paint: Paint()..color = const Color(0xFF00FF00),
+    // Add character markers
+    _addCharacterMarkers();
+  }
+
+  /// Add character markers for all characters on this tile
+  void _addCharacterMarkers() {
+    final count = tile.charactersHere.length;
+    if (count == 0) return;
+
+    // Position characters in a grid if multiple
+    final positions = _getCharacterPositions(count);
+    
+    for (int i = 0; i < count; i++) {
+      final character = tile.charactersHere[i];
+      final charMarker = CircleComponent(
+        radius: cellSize * 0.2,
+        position: positions[i],
+        paint: Paint()..color = Color(character.characterClass.color),
         anchor: Anchor.center,
       );
-      add(playerMarker);
+      add(charMarker);
+    }
+  }
+
+  /// Get positions for character markers based on count
+  List<Vector2> _getCharacterPositions(int count) {
+    final center = size / 2;
+    final offset = cellSize * 0.15;
+    
+    if (count == 1) {
+      return [center];
+    } else if (count == 2) {
+      return [
+        Vector2(center.x - offset, center.y),
+        Vector2(center.x + offset, center.y),
+      ];
+    } else if (count == 3) {
+      return [
+        Vector2(center.x, center.y - offset),
+        Vector2(center.x - offset, center.y + offset),
+        Vector2(center.x + offset, center.y + offset),
+      ];
+    } else {
+      return [
+        Vector2(center.x - offset, center.y - offset),
+        Vector2(center.x + offset, center.y - offset),
+        Vector2(center.x - offset, center.y + offset),
+        Vector2(center.x + offset, center.y + offset),
+      ];
     }
   }
 
@@ -99,28 +139,19 @@ class TileComponent extends PositionComponent {
       background.paint.color = Color(tile.type.defaultColor);
     }
     
-    // Remove old markers
-    removeAll(children.where((child) => child is CircleComponent).toList());
+    // Remove old character markers (but keep NFC markers and borders)
+    final componentsToRemove = children.where((child) {
+      if (child is CircleComponent) {
+        // Keep NFC marker (purple, small, top-right)
+        if (child.paint.color == Colors.purple) return false;
+        // Remove character markers
+        return true;
+      }
+      return false;
+    }).toList();
+    removeAll(componentsToRemove);
 
-    // Re-add markers based on new state
-    if (tile.nfcTagId != null) {
-      final nfcMarker = CircleComponent(
-        radius: cellSize * 0.08,
-        position: Vector2(cellSize * 0.85, cellSize * 0.15),
-        paint: Paint()..color = Colors.purple,
-        anchor: Anchor.center,
-      );
-      add(nfcMarker);
-    }
-
-    if (tile.hasPlayer) {
-      final playerMarker = CircleComponent(
-        radius: cellSize * 0.25,
-        position: size / 2,
-        paint: Paint()..color = const Color(0xFF00FF00),
-        anchor: Anchor.center,
-      );
-      add(playerMarker);
-    }
+    // Re-add character markers
+    _addCharacterMarkers();
   }
 }

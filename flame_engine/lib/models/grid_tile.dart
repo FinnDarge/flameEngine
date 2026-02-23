@@ -1,5 +1,6 @@
 import 'package:flame/components.dart';
 import 'tile_type.dart';
+import 'character.dart';
 
 /// Represents a single room (cell) in the game grid
 /// Each room is 10cm x 10cm on the physical board
@@ -18,6 +19,9 @@ class GridTile {
   
   /// Whether this room is currently occupied by a player
   bool hasPlayer;
+
+  /// List of characters currently on this tile
+  List<Character> charactersHere;
   
   /// Additional metadata for special rooms
   Map<String, dynamic>? metadata;
@@ -28,8 +32,9 @@ class GridTile {
     this.nfcTagId,
     this.isRevealed = false,
     this.hasPlayer = false,
+    List<Character>? charactersHere,
     this.metadata,
-  });
+  }) : charactersHere = charactersHere ?? [];
 
   /// Creates a copy of this tile with optional modifications
   GridTile copyWith({
@@ -38,6 +43,7 @@ class GridTile {
     String? nfcTagId,
     bool? isRevealed,
     bool? hasPlayer,
+    List<Character>? charactersHere,
     Map<String, dynamic>? metadata,
   }) {
     return GridTile(
@@ -46,6 +52,7 @@ class GridTile {
       nfcTagId: nfcTagId ?? this.nfcTagId,
       isRevealed: isRevealed ?? this.isRevealed,
       hasPlayer: hasPlayer ?? this.hasPlayer,
+      charactersHere: charactersHere ?? this.charactersHere,
       metadata: metadata ?? this.metadata,
     );
   }

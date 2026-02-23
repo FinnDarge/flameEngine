@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flame/components.dart';
 import 'grid_tile.dart';
 import 'tile_type.dart';
@@ -112,6 +113,101 @@ class GameGrid {
     print('  - Center room: Player start');
     print('  - 3 special rooms with NFC: Enemy, Door, Treasure');
     print('  - 1 empty floor room on left');
+  }
+
+  /// Generate a random dungeon layout
+  /// NFC tags remain fixed (cell_X_Y), but content changes
+  void generateRandomDungeon({int? seed}) {
+    final random = seed != null ? Random(seed) : Random();
+    
+    // Clear grid - all floors initially
+    for (int row = 0; row < rows; row++) {
+      for (int col = 0; col < columns; col++) {
+        setTileType(row, col, TileType.floor);
+        tiles[row][col].isRevealed = true;
+        tiles[row][col].nfcTagId = 'cell_${row + 1}_${col + 1}'; // Fixed NFC tag per cell
+      }
+    }
+
+    // Starting position (1,1) = (0,0) - always walkable
+    setTileType(0, 0, TileType.floor);
+    
+    // Goal position (3,3) = (2,2) - always walkable  
+    setTileType(2, 2, TileType.floor);
+
+    // Randomly place walls (but not on start or goal)
+    final numWalls = 2 + random.nextInt(2); // 2-3 walls
+    int wallsPlaced = 0;
+    while (wallsPlaced < numWalls) {
+      final row = random.nextInt(rows);
+      final col = random.nextInt(columns);
+      
+      // Don't place on start, goal, or already a wall
+      if ((row == 0 && col == 0) || (row == 2 && col == 2) || 
+          tiles[row][col].type == TileType.wall) {
+        continue;
+      }
+      
+      setTileType(row, col, TileType.wall);
+      wallsPlaced++;
+    }
+
+    // Place doors (1-2 locked doors)
+    final numDoors = 1 + random.nextInt(2);
+    int doorsPlaced = 0;
+    while (doorsPlaced < numDoors) {
+      final row = random.nextInt(rows);
+      final col = random.nextInt(columns);
+      
+      if ((row == 0 && col == 0) || (row == 2 && col == 2) || 
+          tiles[row][col].type != TileType.floor) {
+        continue;
+      }
+      
+      setTileType(row, col, TileType.door);
+      tiles[row][col].metadata = {'locked': true, 'keyColor': 'red'};
+      doorsPlaced++;
+    }
+
+    // Place keys (match number of doors)
+    int keysPlaced = 0;
+    while (keysPlaced < numDoors) {
+      final row = random.nextInt(rows);
+      final col = random.nextInt(columns);
+      
+      if ((row == 0 && col == 0) || (row == 2 && col == 2) || 
+          tiles[row][col].type != TileType.floor) {
+        continue;
+      }
+      
+      setTileType(row, col, TileType.treasure);
+      tiles[row][col].metadata = {'contains': 'key_red'};
+      keysPlaced++;
+    }
+
+    // Place enemies (0-2)
+    final numEnemies = random.nextInt(3);
+    int enemiesPlaced = 0;
+    while (enemiesPlaced < numEnemies) {
+      final row = random.nextInt(rows);
+      final col = random.nextInt(columns);
+      
+      if ((row == 0 && col == 0) || (row == 2 && col == 2) || 
+          tiles[row][col].type != TileType.floor) {
+        continue;
+      }
+      
+      setTileType(row, col, TileType.enemy);
+      tiles[row][col].metadata = {'enemyType': 'goblin', 'health': 5};
+      enemiesPlaced++;
+    }
+
+    print('✓ Random dungeon generated!');
+    print('  - Walls: $wallsPlaced');
+    print('  - Doors: $doorsPlaced');
+    print('  - Keys: $keysPlaced');
+    print('  - Enemies: $enemiesPlaced');
+    print('  - Start: (1,1), Goal: (3,3)');
   }
 
   @override
