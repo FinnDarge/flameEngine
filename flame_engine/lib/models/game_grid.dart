@@ -7,30 +7,27 @@ import 'tile_type.dart';
 class GameGrid {
   /// Number of rows
   final int rows;
-  
+
   /// Number of columns
   final int columns;
-  
+
   /// Physical size of each cell in cm
   final double cellSizeCm;
-  
+
   /// All tiles in the grid
   final List<List<GridTile>> tiles;
 
-  GameGrid({
-    required this.rows,
-    required this.columns,
-    this.cellSizeCm = 10.0,
-  }) : tiles = List.generate(
-          rows,
-          (row) => List.generate(
-            columns,
-            (col) => GridTile(
-              gridPosition: Vector2(col.toDouble(), row.toDouble()),
-              type: TileType.empty,
-            ),
+  GameGrid({required this.rows, required this.columns, this.cellSizeCm = 10.0})
+    : tiles = List.generate(
+        rows,
+        (row) => List.generate(
+          columns,
+          (col) => GridTile(
+            gridPosition: Vector2(col.toDouble(), row.toDouble()),
+            type: TileType.empty,
           ),
-        );
+        ),
+      );
 
   /// Gets a tile at the specified grid position
   GridTile? getTile(int row, int col) {
@@ -100,14 +97,19 @@ class GameGrid {
     setTileType(2, 2, TileType.wall);
 
     // Add special rooms with NFC tags
-    setTileType(1, 2, TileType.door, nfcTagId: 'door_001');      // Right: Door room
-    setTileType(0, 1, TileType.enemy, nfcTagId: 'enemy_001');    // Top: Enemy room
-    setTileType(2, 1, TileType.treasure, nfcTagId: 'treasure_001'); // Bottom: Treasure room
+    setTileType(1, 2, TileType.door, nfcTagId: 'door_001'); // Right: Door room
+    setTileType(0, 1, TileType.enemy, nfcTagId: 'enemy_001'); // Top: Enemy room
+    setTileType(
+      2,
+      1,
+      TileType.treasure,
+      nfcTagId: 'treasure_001',
+    ); // Bottom: Treasure room
 
     // Center room is where player starts
     setTileType(1, 1, TileType.player);
     tiles[1][1].hasPlayer = true;
-    
+
     print('✓ Test dungeon initialized: 3x3 grid with 9 rooms');
     print('  - 4 corner rooms: Walls');
     print('  - Center room: Player start');
@@ -119,20 +121,21 @@ class GameGrid {
   /// NFC tags remain fixed (cell_X_Y), but content changes
   void generateRandomDungeon({int? seed}) {
     final random = seed != null ? Random(seed) : Random();
-    
+
     // Clear grid - all floors initially
     for (int row = 0; row < rows; row++) {
       for (int col = 0; col < columns; col++) {
         setTileType(row, col, TileType.floor);
         tiles[row][col].isRevealed = true;
-        tiles[row][col].nfcTagId = 'cell_${row + 1}_${col + 1}'; // Fixed NFC tag per cell
+        tiles[row][col].nfcTagId =
+            'cell_${row + 1}_${col + 1}'; // Fixed NFC tag per cell
       }
     }
 
     // Starting position (1,1) = (0,0) - always walkable
     setTileType(0, 0, TileType.floor);
-    
-    // Goal position (bottom-right corner) - always walkable  
+
+    // Goal position (bottom-right corner) - always walkable
     setTileType(rows - 1, columns - 1, TileType.floor);
 
     // Randomly place walls (but not on start or goal)
@@ -141,13 +144,14 @@ class GameGrid {
     while (wallsPlaced < numWalls) {
       final row = random.nextInt(rows);
       final col = random.nextInt(columns);
-      
+
       // Don't place on start, goal, or already a wall
-      if ((row == 0 && col == 0) || (row == rows - 1 && col == columns - 1) || 
+      if ((row == 0 && col == 0) ||
+          (row == rows - 1 && col == columns - 1) ||
           tiles[row][col].type == TileType.wall) {
         continue;
       }
-      
+
       setTileType(row, col, TileType.wall);
       wallsPlaced++;
     }
@@ -158,12 +162,13 @@ class GameGrid {
     while (doorsPlaced < numDoors) {
       final row = random.nextInt(rows);
       final col = random.nextInt(columns);
-      
-      if ((row == 0 && col == 0) || (row == rows - 1 && col == columns - 1) || 
+
+      if ((row == 0 && col == 0) ||
+          (row == rows - 1 && col == columns - 1) ||
           tiles[row][col].type != TileType.floor) {
         continue;
       }
-      
+
       setTileType(row, col, TileType.door);
       tiles[row][col].metadata = {'locked': true, 'keyColor': 'red'};
       doorsPlaced++;
@@ -174,12 +179,13 @@ class GameGrid {
     while (keysPlaced < numDoors) {
       final row = random.nextInt(rows);
       final col = random.nextInt(columns);
-      
-      if ((row == 0 && col == 0) || (row == rows - 1 && col == columns - 1) || 
+
+      if ((row == 0 && col == 0) ||
+          (row == rows - 1 && col == columns - 1) ||
           tiles[row][col].type != TileType.floor) {
         continue;
       }
-      
+
       setTileType(row, col, TileType.treasure);
       tiles[row][col].metadata = {'contains': 'key_red'};
       keysPlaced++;
@@ -191,12 +197,13 @@ class GameGrid {
     while (enemiesPlaced < numEnemies) {
       final row = random.nextInt(rows);
       final col = random.nextInt(columns);
-      
-      if ((row == 0 && col == 0) || (row == rows - 1 && col == columns - 1) || 
+
+      if ((row == 0 && col == 0) ||
+          (row == rows - 1 && col == columns - 1) ||
           tiles[row][col].type != TileType.floor) {
         continue;
       }
-      
+
       setTileType(row, col, TileType.enemy);
       tiles[row][col].metadata = {'enemyType': 'goblin', 'health': 5};
       enemiesPlaced++;
@@ -207,7 +214,7 @@ class GameGrid {
     print('  - Doors: $doorsPlaced');
     print('  - Keys: $keysPlaced');
     print('  - Enemies: $enemiesPlaced');
-    print('  - Start: (1,1), Goal: (${rows},${columns})');
+    print('  - Start: (1,1), Goal: ($rows,$columns)');
   }
 
   @override

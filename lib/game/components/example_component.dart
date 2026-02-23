@@ -20,7 +20,7 @@ class ExampleComponent extends PositionComponent {
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-    
+
     _paint = Paint()
       ..color = color
       ..style = PaintingStyle.fill;
@@ -35,12 +35,5 @@ class ExampleComponent extends PositionComponent {
       size.x / 2,
       _paint,
     );
-  }
-
-  @override
-  void update(double dt) {
-    super.update(dt);
-    // Add your update logic here
-    // This runs every frame
   }
 }

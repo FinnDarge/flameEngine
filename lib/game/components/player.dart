@@ -14,7 +14,7 @@ class Player extends PositionComponent {
     await super.onLoad();
 
     // Set initial size and position
-    this.size = Vector2.all(size);
+    size = Vector2.all(size);
     position = Vector2(
       (parent as PositionComponent).size.x / 2 - size / 2,
       (parent as PositionComponent).size.y / 2 - size / 2,

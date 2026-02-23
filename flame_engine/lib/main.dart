@@ -1,5 +1,4 @@
 import 'package:flame/game.dart';
-import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import 'models/game_grid.dart';
 import 'models/game_state.dart';
@@ -11,10 +10,7 @@ import 'utils/spritesheet_loader.dart';
 
 void main() {
   runApp(
-    const MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: GameScreen(),
-    ),
+    const MaterialApp(debugShowCheckedModeBanner: false, home: GameScreen()),
   );
 }
 
@@ -44,7 +40,9 @@ class _GameScreenState extends State<GameScreen> {
     final available = await nfcService.checkAvailability();
     setState(() {
       nfcAvailable = available;
-      nfcStatus = available ? 'NFC Available - Tap button to start' : 'NFC Not Available';
+      nfcStatus = available
+          ? 'NFC Available - Tap button to start'
+          : 'NFC Not Available';
     });
   }
 
@@ -67,7 +65,7 @@ class _GameScreenState extends State<GameScreen> {
     nfcService.startScanning((tagId, data) {
       // Handle NFC tag discovery
       game.handleNFCTag(tagId, data);
-      
+
       // Update UI after NFC processing
       setState(() {
         nfcStatus = 'Tag detected: $tagId';
@@ -118,7 +116,7 @@ class _GameScreenState extends State<GameScreen> {
     final phase = game.gameState.phase;
     final player = game.gameState.localPlayer;
     final currentTurn = game.gameState.currentTurnCharacter;
-    
+
     return Scaffold(
       backgroundColor: const Color(0xFF1a1a1a),
       appBar: AppBar(
@@ -128,12 +126,14 @@ class _GameScreenState extends State<GameScreen> {
           IconButton(
             icon: Icon(
               nfcAvailable ? Icons.nfc : Icons.nfc_outlined,
-              color: nfcScanning ? Colors.green : (nfcAvailable ? Colors.orange : Colors.red),
+              color: nfcScanning
+                  ? Colors.green
+                  : (nfcAvailable ? Colors.orange : Colors.red),
             ),
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(nfcStatus)),
-              );
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text(nfcStatus)));
             },
           ),
         ],
@@ -172,17 +172,17 @@ class _GameScreenState extends State<GameScreen> {
             ),
           ),
           // Game widget
-          Expanded(
-            child: GameWidget(game: game),
-          ),
+          Expanded(child: GameWidget(game: game)),
           // Control panel
           Container(
             padding: const EdgeInsets.all(16),
             color: const Color(0xFF2d2d2d),
             child: Column(
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 8,
+                  runSpacing: 8,
                   children: [
                     ElevatedButton.icon(
                       onPressed: () {
@@ -202,7 +202,9 @@ class _GameScreenState extends State<GameScreen> {
                                 game.startGameplay();
                                 setState(() {});
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Game started!')),
+                                  const SnackBar(
+                                    content: Text('Game started!'),
+                                  ),
                                 );
                               }
                             : null,
@@ -311,7 +313,7 @@ class _GameScreenState extends State<GameScreen> {
   Widget _buildTurnStatus(Player player, Character? currentTurn) {
     final isYourTurn = game.gameState.isLocalPlayerTurn;
     final char = player.character;
-    
+
     if (char == null) {
       return const SizedBox.shrink();
     }
@@ -319,7 +321,7 @@ class _GameScreenState extends State<GameScreen> {
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: isYourTurn 
+        color: isYourTurn
             ? Colors.green.withOpacity(0.2)
             : Colors.grey.withOpacity(0.2),
         borderRadius: BorderRadius.circular(4),
@@ -354,14 +356,14 @@ class DungeonGame extends FlameGame {
   late GameState gameState;
   GridComponent? gridComponent;
   final SpritesheetLoader spritesheetLoader = SpritesheetLoader();
-  
+
   // Track last tapped NFC tag for movement flow
   String? lastTappedCharacterNfc;
 
   DungeonGame() {
     final grid = GameGrid(rows: 4, columns: 4);
     grid.generateRandomDungeon(); // Dynamic dungeon!
-    
+
     gameState = GameState(grid: grid);
     print('✓ DungeonGame created - Phase: ${gameState.phase.name}');
   }
@@ -422,8 +424,10 @@ class DungeonGame extends FlameGame {
   /// Handle movement during gameplay
   void _handleMovement(String tagId) {
     // Check if it's a character NFC tag
-    final isCharacterTag = CharacterClass.values.any((c) => c.nfcTagId == tagId);
-    
+    final isCharacterTag = CharacterClass.values.any(
+      (c) => c.nfcTagId == tagId,
+    );
+
     if (isCharacterTag) {
       // Step 1: Player taps their character figure
       _handleCharacterTap(tagId);
@@ -443,7 +447,9 @@ class DungeonGame extends FlameGame {
 
     // Verify it's their turn
     if (!gameState.isLocalPlayerTurn) {
-      print('⚠ Not your turn! Current turn: ${gameState.currentTurnCharacter?.name}');
+      print(
+        '⚠ Not your turn! Current turn: ${gameState.currentTurnCharacter?.name}',
+      );
       return;
     }
 
@@ -502,7 +508,7 @@ class DungeonGame extends FlameGame {
   void resetGame() {
     gameState.grid.generateRandomDungeon();
     gridComponent?.updateAllTiles();
-    
+
     // Reset game state
     gameState.characters.clear();
     gameState.localPlayer.releaseCharacter();
@@ -510,7 +516,7 @@ class DungeonGame extends FlameGame {
     gameState.currentTurnIndex = 0;
     gameState.turnNumber = 1;
     lastTappedCharacterNfc = null;
-    
+
     print('🔄 Game reset - Select your character!');
   }
 
@@ -520,4 +526,3 @@ class DungeonGame extends FlameGame {
     gridComponent?.updateAllTiles();
   }
 }
-
