@@ -3,7 +3,7 @@ import '../models/game_grid.dart';
 import '../utils/spritesheet_loader.dart';
 import 'tile_component.dart';
 
-/// Component that renders the entire game grid (3x3 rooms)
+/// Component that renders the entire game grid
 /// Each room is 10cm x 10cm on the physical board
 class GridComponent extends PositionComponent {
   final GameGrid grid;

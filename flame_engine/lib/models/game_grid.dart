@@ -82,7 +82,7 @@ class GameGrid {
     return tile != null && tile.type.isWalkable;
   }
 
-  /// Initializes a basic 3x3 dungeon layout for testing
+  /// Initializes a basic test dungeon layout
   /// Creates simple rooms with different properties
   void initializeTestDungeon() {
     // Set all rooms to floor first (basic walkable rooms)
@@ -132,8 +132,8 @@ class GameGrid {
     // Starting position (1,1) = (0,0) - always walkable
     setTileType(0, 0, TileType.floor);
     
-    // Goal position (3,3) = (2,2) - always walkable  
-    setTileType(2, 2, TileType.floor);
+    // Goal position (bottom-right corner) - always walkable  
+    setTileType(rows - 1, columns - 1, TileType.floor);
 
     // Randomly place walls (but not on start or goal)
     final numWalls = 2 + random.nextInt(2); // 2-3 walls
@@ -143,7 +143,7 @@ class GameGrid {
       final col = random.nextInt(columns);
       
       // Don't place on start, goal, or already a wall
-      if ((row == 0 && col == 0) || (row == 2 && col == 2) || 
+      if ((row == 0 && col == 0) || (row == rows - 1 && col == columns - 1) || 
           tiles[row][col].type == TileType.wall) {
         continue;
       }
@@ -159,7 +159,7 @@ class GameGrid {
       final row = random.nextInt(rows);
       final col = random.nextInt(columns);
       
-      if ((row == 0 && col == 0) || (row == 2 && col == 2) || 
+      if ((row == 0 && col == 0) || (row == rows - 1 && col == columns - 1) || 
           tiles[row][col].type != TileType.floor) {
         continue;
       }
@@ -175,7 +175,7 @@ class GameGrid {
       final row = random.nextInt(rows);
       final col = random.nextInt(columns);
       
-      if ((row == 0 && col == 0) || (row == 2 && col == 2) || 
+      if ((row == 0 && col == 0) || (row == rows - 1 && col == columns - 1) || 
           tiles[row][col].type != TileType.floor) {
         continue;
       }
@@ -192,7 +192,7 @@ class GameGrid {
       final row = random.nextInt(rows);
       final col = random.nextInt(columns);
       
-      if ((row == 0 && col == 0) || (row == 2 && col == 2) || 
+      if ((row == 0 && col == 0) || (row == rows - 1 && col == columns - 1) || 
           tiles[row][col].type != TileType.floor) {
         continue;
       }
@@ -207,7 +207,7 @@ class GameGrid {
     print('  - Doors: $doorsPlaced');
     print('  - Keys: $keysPlaced');
     print('  - Enemies: $enemiesPlaced');
-    print('  - Start: (1,1), Goal: (3,3)');
+    print('  - Start: (1,1), Goal: (${rows},${columns})');
   }
 
   @override

@@ -359,7 +359,7 @@ class DungeonGame extends FlameGame {
   String? lastTappedCharacterNfc;
 
   DungeonGame() {
-    final grid = GameGrid(rows: 3, columns: 3);
+    final grid = GameGrid(rows: 4, columns: 4);
     grid.generateRandomDungeon(); // Dynamic dungeon!
     
     gameState = GameState(grid: grid);

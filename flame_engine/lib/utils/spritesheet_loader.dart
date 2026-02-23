@@ -18,7 +18,7 @@ class SpritesheetLoader {
   /// Mapping of tile types to their spritesheet coordinates (row, col)
   /// Adjust these positions based on your actual spritesheet layout
   static const Map<TileType, TilePosition> tileMapping = {
-    TileType.floor: TilePosition(row: 0, col: 0),      // Adjust to your floor tile
+    TileType.floor: TilePosition(row: 1, col: 10),     // Column 11, Row 2 (0-indexed: col 10, row 1)
     TileType.wall: TilePosition(row: 0, col: 1),       // Adjust to your wall tile
     TileType.door: TilePosition(row: 1, col: 0),       // Adjust to your door tile
     TileType.enemy: TilePosition(row: 2, col: 0),      // Adjust to your enemy tile

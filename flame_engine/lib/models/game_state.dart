@@ -30,7 +30,7 @@ class GameState {
   GameState({
     required this.grid,
     Vector2? goal,
-  }) : goalPosition = goal ?? Vector2(2, 2) { // (3,3) in 1-indexed = (2,2) in 0-indexed
+  }) : goalPosition = goal ?? Vector2(3, 3) { // (4,4) in 1-indexed = (3,3) in 0-indexed
     // Create local player with unique ID
     localPlayer = Player(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
