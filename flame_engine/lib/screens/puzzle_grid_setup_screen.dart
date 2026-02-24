@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/game_state.dart';
+import '../widgets/token_and_board_app_bar.dart';
 
 /// Screen for setting up the physical puzzle grid before character selection
 class PuzzleGridSetupScreen extends StatelessWidget {
@@ -26,15 +27,7 @@ class PuzzleGridSetupScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey.shade900,
-      appBar: AppBar(
-        backgroundColor: Colors.grey.shade800,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: _goBack,
-        ),
-        title: const Text('Setup Game Board'),
-        centerTitle: true,
-      ),
+      appBar: TokenAndBoardAppBar(onBackPressed: _goBack),
       body: SingleChildScrollView(
         child: Column(
           children: [
@@ -44,7 +37,7 @@ class PuzzleGridSetupScreen extends StatelessWidget {
                 children: [
                   const SizedBox(height: 16),
                   Text(
-                    'Arrange Your Puzzle Tiles',
+                    'Arrange Your Grid Tiles',
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -92,17 +85,17 @@ class PuzzleGridSetupScreen extends StatelessWidget {
                     const SizedBox(height: 8),
                     if (gameState.selectedScenario?.id == 'tutorial') ...[
                       _instructionItem(
-                        'Puzzle Tile A (blue) forms the top row: cells 1 and 2',
+                        'Grid Tile A (blue) forms the top row: cells 1 and 2',
                       ),
                       const SizedBox(height: 6),
                       _instructionItem(
-                        'Puzzle Tile B (green) forms the bottom row: cells 3 and 4',
+                        'Grid Tile B (green) forms the bottom row: cells 3 and 4',
                       ),
                       const SizedBox(height: 6),
                       _instructionItem('Together they create a 2x2 game grid'),
                     ] else if (gameState.selectedScenario?.id == 'classic') ...[
                       _instructionItem(
-                        'Arrange 8 puzzle tiles (A-H) to form a 4x4 grid',
+                        'Arrange 8 grid tiles (A-H) to form a 4x4 grid',
                       ),
                       const SizedBox(height: 6),
                       _instructionItem('Tiles A-B form the top row (2 tiles)'),
@@ -153,9 +146,9 @@ class PuzzleGridSetupScreen extends StatelessWidget {
 
   String _getSubtitleText() {
     if (gameState.selectedScenario?.id == 'tutorial') {
-      return 'Puzzle Tile A and Tile B form a 2x2 grid';
+      return 'Grid Tile A and Tile B form a 2x2 grid';
     } else if (gameState.selectedScenario?.id == 'classic') {
-      return 'Eight puzzle tiles form a 4x4 grid';
+      return 'Eight grid tiles form a 4x4 grid';
     }
     return '';
   }
@@ -175,7 +168,7 @@ class PuzzleGridSetupScreen extends StatelessWidget {
         Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Row 1 - Puzzle Tile A (Blue)
+            // Row 1 - Grid Tile A (Blue)
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -183,7 +176,7 @@ class PuzzleGridSetupScreen extends StatelessWidget {
                 _buildGridCell('2', Colors.blue.shade900, Colors.blue.shade200),
               ],
             ),
-            // Row 2 - Puzzle Tile B (Green)
+            // Row 2 - Grid Tile B (Green)
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -205,9 +198,9 @@ class PuzzleGridSetupScreen extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _legendItem('Puzzle Tile A', Colors.blue.shade900),
+            _legendItem('Grid Tile A', Colors.blue.shade900),
             const SizedBox(width: 24),
-            _legendItem('Puzzle Tile B', Colors.green.shade900),
+            _legendItem('Grid Tile B', Colors.green.shade900),
           ],
         ),
       ],
