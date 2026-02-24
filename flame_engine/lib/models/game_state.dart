@@ -4,6 +4,7 @@ import 'player.dart';
 import 'game_grid.dart';
 import 'tile_type.dart';
 import 'game_scenario.dart';
+import '../services/management_api_service.dart' show ApiPlayer, ApiBoard;
 
 /// Manages the overall game state
 class GameState {
@@ -30,6 +31,12 @@ class GameState {
 
   /// Goal position
   final Vector2 goalPosition;
+
+  /// Players loaded from the management API (for multiplayer / lobby).
+  List<ApiPlayer> apiPlayers = const [];
+
+  /// Boards loaded from the management API.
+  List<ApiBoard> apiBoards = const [];
 
   GameState({required this.grid, Vector2? goal})
     : goalPosition = goal ?? Vector2(3, 3) {

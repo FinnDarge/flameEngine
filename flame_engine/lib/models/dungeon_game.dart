@@ -14,8 +14,8 @@ class DungeonGame extends FlameGame {
   // Track last tapped NFC tag for movement flow
   String? lastTappedCharacterNfc;
 
-  DungeonGame() {
-    final grid = GameGrid(rows: 4, columns: 4);
+  DungeonGame({int rows = 4, int columns = 4}) {
+    final grid = GameGrid(rows: rows, columns: columns);
     grid.generateRandomDungeon(); // Dynamic dungeon!
 
     gameState = GameState(grid: grid);

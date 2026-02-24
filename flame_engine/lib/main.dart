@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'models/game_state.dart';
 import 'models/dungeon_game.dart';
 import 'services/nfc_service.dart';
+import 'services/management_api_service.dart';
+import 'services/mock_nfc_data.dart' show applyApiData;
 import 'screens/scenario_selection_screen.dart';
 import 'screens/grid_setup_screen.dart';
 import 'screens/character_selection_screen.dart';
@@ -25,11 +27,31 @@ class GameNavigator extends StatefulWidget {
 class _GameNavigatorState extends State<GameNavigator> {
   late DungeonGame game;
   final NFCService nfcService = NFCService();
+  final ManagementApiService _api = ManagementApiService();
+  bool _apiLoading = true;
 
   @override
   void initState() {
     super.initState();
-    game = DungeonGame();
+    _loadApiThenStart();
+  }
+
+  Future<void> _loadApiThenStart() async {
+    await _api.load();
+    // Overwrite mock NFC character data with live pieces from the API
+    applyApiData(_api);
+
+    // Build the game using board dimensions from the API (fallback 4×4)
+    final board = _api.primaryBoard;
+    final rows = board?.height ?? 4;
+    final cols = board?.width ?? 4;
+    game = DungeonGame(rows: rows, columns: cols);
+
+    // Store API players in game state for multiplayer use
+    game.gameState.apiPlayers = List.unmodifiable(_api.players);
+    game.gameState.apiBoards = List.unmodifiable(_api.boards);
+
+    if (mounted) setState(() => _apiLoading = false);
   }
 
   void _onCharacterSelectionComplete() {
@@ -79,6 +101,26 @@ class _GameNavigatorState extends State<GameNavigator> {
 
   @override
   Widget build(BuildContext context) {
+    // Show spinner while the API is loading
+    if (_apiLoading) {
+      return const Scaffold(
+        backgroundColor: Color(0xFF1a1a1a),
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(color: Colors.deepPurple),
+              SizedBox(height: 20),
+              Text(
+                'Loading game data...',
+                style: TextStyle(color: Colors.white70, fontSize: 16),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return StreamBuilder<GamePhase>(
       stream: _createPhaseStream(),
       builder: (context, snapshot) {
