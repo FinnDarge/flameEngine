@@ -78,19 +78,16 @@ class NFCService {
 
   /// Extract tag ID from NFC tag
   String _extractTagId(NfcTag tag) {
-    // Try different tag technologies to get ID
-    var ndef = Ndef.from(tag);
-    if (ndef != null) {
-      // For NDEF tags, we can use the identifier
-      final identifier =
-          tag.data['nfca']?['identifier'] ??
-          tag.data['nfcb']?['identifier'] ??
-          tag.data['nfcf']?['identifier'] ??
-          tag.data['nfcv']?['identifier'];
+    // Try to get UID from all NFC tag technologies (works for NDEF and non-NDEF)
+    final identifier =
+        tag.data['nfca']?['identifier'] ??
+        tag.data['nfcb']?['identifier'] ??
+        tag.data['nfcf']?['identifier'] ??
+        tag.data['nfcv']?['identifier'] ??
+        tag.data['isodep']?['identifier'];
 
-      if (identifier != null) {
-        return _bytesToHex(identifier);
-      }
+    if (identifier != null) {
+      return _bytesToHex((identifier as List).cast<int>());
     }
 
     // Fallback: use raw tag data

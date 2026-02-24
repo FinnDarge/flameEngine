@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import '../models/character.dart';
 import '../models/game_state.dart';
 import '../widgets/token_and_board_app_bar.dart';
 
-const _characterAsset = 'assets/images/characters/wizard.jpg';
+String _characterAsset(CharacterClass? cls) =>
+    cls?.imagePath ?? 'assets/images/characters/wizard.jpg';
 
 /// Screen instructing the player to physically place their character figure
 /// on the starting tile of the physical grid — shown after character selection
@@ -76,7 +78,7 @@ class CharacterStartPlacementScreen extends StatelessWidget {
                     ClipRRect(
                       borderRadius: BorderRadius.circular(4),
                       child: Image.asset(
-                        _characterAsset,
+                        _characterAsset(character?.characterClass),
                         width: 40,
                         height: 40,
                         fit: BoxFit.cover,
@@ -374,7 +376,12 @@ class CharacterStartPlacementScreen extends StatelessWidget {
                 child: SizedBox(
                   width: 45,
                   height: 45,
-                  child: Image.asset(_characterAsset, fit: BoxFit.cover),
+                  child: Image.asset(
+                    _characterAsset(
+                      gameState.localPlayer.character?.characterClass,
+                    ),
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
             ),
@@ -440,7 +447,12 @@ class CharacterStartPlacementScreen extends StatelessWidget {
                 child: SizedBox(
                   width: 32,
                   height: 32,
-                  child: Image.asset(_characterAsset, fit: BoxFit.cover),
+                  child: Image.asset(
+                    _characterAsset(
+                      gameState.localPlayer.character?.characterClass,
+                    ),
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
             ),
@@ -501,7 +513,10 @@ class CharacterStartPlacementScreen extends StatelessWidget {
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(2),
-            child: Image.asset(_characterAsset, fit: BoxFit.cover),
+            child: Image.asset(
+              _characterAsset(gameState.localPlayer.character?.characterClass),
+              fit: BoxFit.cover,
+            ),
           ),
         ),
         const SizedBox(width: 8),

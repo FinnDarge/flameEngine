@@ -1,5 +1,6 @@
 import 'package:flame/components.dart';
-import '../services/mock_nfc_data.dart';
+import '../services/mock_nfc_data.dart'
+    show kWizardCharacterName, kWizardNfcTagId, kWizardUuid, kWarriorNfcTagId;
 
 /// Represents a playable character in the game
 class Character {
@@ -82,21 +83,12 @@ class Character {
 /// Character classes/types
 enum CharacterClass {
   warrior,
-  mage,
-  rogue,
-  cleric,
   wizard;
 
   String get name {
     switch (this) {
       case CharacterClass.warrior:
         return 'Warrior';
-      case CharacterClass.mage:
-        return 'Mage';
-      case CharacterClass.rogue:
-        return 'Rogue';
-      case CharacterClass.cleric:
-        return 'Cleric';
       case CharacterClass.wizard:
         return kWizardCharacterName;
     }
@@ -106,12 +98,6 @@ enum CharacterClass {
     switch (this) {
       case CharacterClass.warrior:
         return 0xFFFF4444; // Red
-      case CharacterClass.mage:
-        return 0xFF4444FF; // Blue
-      case CharacterClass.rogue:
-        return 0xFF44FF44; // Green
-      case CharacterClass.cleric:
-        return 0xFFFFFF44; // Yellow
       case CharacterClass.wizard:
         return 0xFFAA44FF; // Purple
     }
@@ -121,15 +107,19 @@ enum CharacterClass {
   String get nfcTagId {
     switch (this) {
       case CharacterClass.warrior:
-        return 'char_warrior';
-      case CharacterClass.mage:
-        return 'char_mage';
-      case CharacterClass.rogue:
-        return 'char_rogue';
-      case CharacterClass.cleric:
-        return 'char_cleric';
+        return kWarriorNfcTagId;
       case CharacterClass.wizard:
         return kWizardNfcTagId;
+    }
+  }
+
+  /// Asset path for the character image
+  String get imagePath {
+    switch (this) {
+      case CharacterClass.warrior:
+        return 'assets/images/characters/warrior.jpg';
+      case CharacterClass.wizard:
+        return 'assets/images/characters/wizard.jpg';
     }
   }
 
