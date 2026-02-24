@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import '../models/game_state.dart';
 import '../widgets/token_and_board_app_bar.dart';
 
-/// Screen for setting up the physical puzzle grid before character selection
-class PuzzleGridSetupScreen extends StatelessWidget {
+/// Screen for setting up the physical grid before character selection
+class GridSetupScreen extends StatelessWidget {
   final GameState gameState;
   final VoidCallback onSetupComplete;
 
-  const PuzzleGridSetupScreen({
+  const GridSetupScreen({
     super.key,
     required this.gameState,
     required this.onSetupComplete,
@@ -53,7 +53,7 @@ class PuzzleGridSetupScreen extends StatelessWidget {
                 ],
               ),
             ),
-            // Puzzle Grid Diagram
+            // Grid Diagram
             Padding(
               padding: const EdgeInsets.all(24),
               child: gameState.selectedScenario?.id == 'tutorial'

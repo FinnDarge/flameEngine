@@ -61,36 +61,9 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
 
   void _startNFCScanning() {
     widget.nfcService.startScanning((tagId, data) {
-      // Handle character selection via NFC
-      final success = widget.gameState.claimCharacter(tagId);
-      if (success) {
-        setState(() {
-          nfcStatus =
-              'Character claimed: ${widget.gameState.localPlayer.character!.name}';
-        });
-
-        // Auto-stop scanning after successful selection
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (mounted) {
-            _stopNFCScanning();
-            // Show confirmation dialog
-            _showCharacterConfirmation();
-          }
-        });
-      } else {
-        setState(() {
-          nfcStatus = 'Character already claimed or invalid tag';
-        });
-
-        // Reset status after 2 seconds
-        Future.delayed(const Duration(seconds: 2), () {
-          if (mounted && nfcScanning) {
-            setState(() {
-              nfcStatus = 'NFC Available - Tap character figure to claim';
-            });
-          }
-        });
-      }
+      setState(() {
+        nfcStatus = 'NFC ID Scanned: $tagId';
+      });
     });
 
     setState(() {

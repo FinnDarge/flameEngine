@@ -3,7 +3,7 @@ import 'models/game_state.dart';
 import 'models/dungeon_game.dart';
 import 'services/nfc_service.dart';
 import 'screens/scenario_selection_screen.dart';
-import 'screens/puzzle_grid_setup_screen.dart';
+import 'screens/grid_setup_screen.dart';
 import 'screens/character_selection_screen.dart';
 import 'screens/gameplay_screen.dart';
 
@@ -74,7 +74,7 @@ class _GameNavigatorState extends State<GameNavigator> {
             onScenarioSelected: _onScenarioSelected,
           );
         } else if (phase == GamePhase.puzzleGridSetup) {
-          return PuzzleGridSetupScreen(
+          return GridSetupScreen(
             gameState: game.gameState,
             onSetupComplete: _onScenarioSelected,
           );
