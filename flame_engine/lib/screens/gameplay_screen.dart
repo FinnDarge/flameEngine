@@ -12,6 +12,7 @@ class GameplayScreen extends StatefulWidget {
   final GameState gameState;
   final NFCService nfcService;
   final VoidCallback onGameEnd;
+  final VoidCallback? onBack;
 
   const GameplayScreen({
     super.key,
@@ -19,6 +20,7 @@ class GameplayScreen extends StatefulWidget {
     required this.gameState,
     required this.nfcService,
     required this.onGameEnd,
+    this.onBack,
   });
 
   @override
@@ -154,7 +156,7 @@ class _GameplayScreenState extends State<GameplayScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFF1a1a1a),
-      appBar: TokenAndBoardAppBar(),
+      appBar: TokenAndBoardAppBar(onBackPressed: widget.onBack),
       body: Column(
         children: [
           // Status bar
@@ -222,11 +224,6 @@ class _GameplayScreenState extends State<GameplayScreen> {
                       ),
                     ),
                   ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Physical board: 10cm x 10cm cells with NFC tags',
-                  style: TextStyle(color: Colors.white70, fontSize: 12),
                 ),
               ],
             ),

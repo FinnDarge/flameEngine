@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+
+const _kLogoAsset = 'assets/images/TB_logo.svg';
 
 /// Reusable app bar with Token & Board branding
 class TokenAndBoardAppBar extends StatelessWidget
@@ -27,7 +30,15 @@ class TokenAndBoardAppBar extends StatelessWidget
           : null,
       title: Row(
         children: [
-          Icon(Icons.games, color: Colors.blue.shade300, size: 24),
+          SvgPicture.asset(
+            _kLogoAsset,
+            width: 28,
+            height: 28,
+            colorFilter: ColorFilter.mode(
+              Colors.blue.shade300,
+              BlendMode.srcIn,
+            ),
+          ),
           const SizedBox(width: 8),
           Text(
             'Token & Board',

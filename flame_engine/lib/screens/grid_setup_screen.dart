@@ -85,32 +85,20 @@ class GridSetupScreen extends StatelessWidget {
                     const SizedBox(height: 8),
                     if (gameState.selectedScenario?.id == 'tutorial') ...[
                       _instructionItem(
-                        'Grid Tile A (blue) forms the top row: cells 1 and 2',
+                        'Place Grid Tile A (blue) — it is the complete 2x2 game grid',
                       ),
-                      const SizedBox(height: 6),
-                      _instructionItem(
-                        'Grid Tile B (green) forms the bottom row: cells 3 and 4',
-                      ),
-                      const SizedBox(height: 6),
-                      _instructionItem('Together they create a 2x2 game grid'),
                     ] else if (gameState.selectedScenario?.id == 'classic') ...[
                       _instructionItem(
-                        'Arrange 8 grid tiles (A-H) to form a 4x4 grid',
+                        'Arrange 4 grid tiles (A–D), each 2x2, to form a 4x4 grid',
                       ),
                       const SizedBox(height: 6),
-                      _instructionItem('Tiles A-B form the top row (2 tiles)'),
+                      _instructionItem('Tile A: top-left quadrant'),
                       const SizedBox(height: 6),
-                      _instructionItem(
-                        'Tiles C-D form the second row (2 tiles)',
-                      ),
+                      _instructionItem('Tile B: top-right quadrant'),
                       const SizedBox(height: 6),
-                      _instructionItem(
-                        'Tiles E-F form the third row (2 tiles)',
-                      ),
+                      _instructionItem('Tile C: bottom-left quadrant'),
                       const SizedBox(height: 6),
-                      _instructionItem(
-                        'Tiles G-H form the bottom row (2 tiles)',
-                      ),
+                      _instructionItem('Tile D: bottom-right quadrant'),
                     ],
                     const SizedBox(height: 6),
                     _instructionItem(
@@ -146,9 +134,9 @@ class GridSetupScreen extends StatelessWidget {
 
   String _getSubtitleText() {
     if (gameState.selectedScenario?.id == 'tutorial') {
-      return 'Grid Tile A and Tile B form a 2x2 grid';
+      return 'One 2x2 grid tile forms the complete 2x2 grid';
     } else if (gameState.selectedScenario?.id == 'classic') {
-      return 'Eight grid tiles form a 4x4 grid';
+      return 'Four 2x2 grid tiles form a 4x4 grid';
     }
     return '';
   }
@@ -165,70 +153,139 @@ class GridSetupScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
-        Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Row 1 - Grid Tile A (Blue)
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildGridCell('1', Colors.blue.shade900, Colors.blue.shade200),
-                _buildGridCell('2', Colors.blue.shade900, Colors.blue.shade200),
-              ],
-            ),
-            // Row 2 - Grid Tile B (Green)
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildGridCell(
-                  '3',
-                  Colors.green.shade900,
-                  Colors.green.shade200,
-                ),
-                _buildGridCell(
-                  '4',
-                  Colors.green.shade900,
-                  Colors.green.shade200,
-                ),
-              ],
-            ),
-          ],
+        // Grid Tile A is the entire 2x2 grid
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.blue.shade200, width: 3),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildGridCell(
+                    '1',
+                    Colors.blue.shade900,
+                    Colors.blue.shade200,
+                  ),
+                  _buildGridCell(
+                    '2',
+                    Colors.blue.shade900,
+                    Colors.blue.shade200,
+                  ),
+                ],
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildGridCell(
+                    '3',
+                    Colors.blue.shade900,
+                    Colors.blue.shade200,
+                  ),
+                  _buildGridCell(
+                    '4',
+                    Colors.blue.shade900,
+                    Colors.blue.shade200,
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 16),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _legendItem('Grid Tile A', Colors.blue.shade900),
-            const SizedBox(width: 24),
-            _legendItem('Grid Tile B', Colors.green.shade900),
-          ],
-        ),
+        _legendItem('Grid Tile A', Colors.blue.shade900),
       ],
     );
   }
 
   Widget _buildClassicGrid(BuildContext context) {
-    final colors = [
+    // 4 tiles, each 2x2, arranged in a 2x2 tile layout to form a 4x4 grid
+    final tileColors = [
       Colors.blue.shade900,
-      Colors.blue.shade700,
       Colors.green.shade900,
-      Colors.green.shade700,
       Colors.purple.shade900,
-      Colors.purple.shade700,
       Colors.orange.shade900,
-      Colors.orange.shade700,
     ];
-    final borderColors = [
+    final tileBorderColors = [
       Colors.blue.shade200,
-      Colors.blue.shade100,
       Colors.green.shade200,
-      Colors.green.shade100,
       Colors.purple.shade200,
-      Colors.purple.shade100,
       Colors.orange.shade200,
-      Colors.orange.shade100,
     ];
-    final labels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+    final labels = ['A', 'B', 'C', 'D'];
+
+    // Cell numbers per tile:
+    // Tile A (top-left):    1,2 / 5,6
+    // Tile B (top-right):   3,4 / 7,8
+    // Tile C (bottom-left): 9,10 / 13,14
+    // Tile D (bottom-right):11,12 / 15,16
+    final tileCells = [
+      [
+        ['1', '2'],
+        ['5', '6'],
+      ],
+      [
+        ['3', '4'],
+        ['7', '8'],
+      ],
+      [
+        ['9', '10'],
+        ['13', '14'],
+      ],
+      [
+        ['11', '12'],
+        ['15', '16'],
+      ],
+    ];
+
+    Widget buildTile(int t) {
+      return Container(
+        decoration: BoxDecoration(
+          border: Border.all(color: tileBorderColors[t], width: 3),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildClassicGridCell(
+                  tileCells[t][0][0],
+                  labels[t],
+                  tileColors[t],
+                  tileBorderColors[t],
+                ),
+                _buildClassicGridCell(
+                  tileCells[t][0][1],
+                  labels[t],
+                  tileColors[t],
+                  tileBorderColors[t],
+                ),
+              ],
+            ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildClassicGridCell(
+                  tileCells[t][1][0],
+                  labels[t],
+                  tileColors[t],
+                  tileBorderColors[t],
+                ),
+                _buildClassicGridCell(
+                  tileCells[t][1][1],
+                  labels[t],
+                  tileColors[t],
+                  tileBorderColors[t],
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
 
     return Column(
       children: [
@@ -244,45 +301,16 @@ class GridSetupScreen extends StatelessWidget {
         Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Row 1 - Tiles A (1-2) and B (3-4)
+            // Top row: Tile A (top-left) + Tile B (top-right)
             Row(
               mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildClassicGridCell('1', 'A', colors[0], borderColors[0]),
-                _buildClassicGridCell('2', 'A', colors[0], borderColors[0]),
-                _buildClassicGridCell('3', 'B', colors[1], borderColors[1]),
-                _buildClassicGridCell('4', 'B', colors[1], borderColors[1]),
-              ],
+              children: [buildTile(0), const SizedBox(width: 4), buildTile(1)],
             ),
-            // Row 2 - Tiles C (5-6) and D (7-8)
+            const SizedBox(height: 4),
+            // Bottom row: Tile C (bottom-left) + Tile D (bottom-right)
             Row(
               mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildClassicGridCell('5', 'C', colors[2], borderColors[2]),
-                _buildClassicGridCell('6', 'C', colors[2], borderColors[2]),
-                _buildClassicGridCell('7', 'D', colors[3], borderColors[3]),
-                _buildClassicGridCell('8', 'D', colors[3], borderColors[3]),
-              ],
-            ),
-            // Row 3 - Tiles E (9-10) and F (11-12)
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildClassicGridCell('9', 'E', colors[4], borderColors[4]),
-                _buildClassicGridCell('10', 'E', colors[4], borderColors[4]),
-                _buildClassicGridCell('11', 'F', colors[5], borderColors[5]),
-                _buildClassicGridCell('12', 'F', colors[5], borderColors[5]),
-              ],
-            ),
-            // Row 4 - Tiles G (13-14) and H (15-16)
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildClassicGridCell('13', 'G', colors[6], borderColors[6]),
-                _buildClassicGridCell('14', 'G', colors[6], borderColors[6]),
-                _buildClassicGridCell('15', 'H', colors[7], borderColors[7]),
-                _buildClassicGridCell('16', 'H', colors[7], borderColors[7]),
-              ],
+              children: [buildTile(2), const SizedBox(width: 4), buildTile(3)],
             ),
           ],
         ),
@@ -292,8 +320,8 @@ class GridSetupScreen extends StatelessWidget {
           alignment: WrapAlignment.center,
           spacing: 8,
           runSpacing: 8,
-          children: List.generate(8, (index) {
-            return _legendItem('Tile ${labels[index]}', colors[index]);
+          children: List.generate(4, (index) {
+            return _legendItem('Tile ${labels[index]}', tileColors[index]);
           }),
         ),
       ],
@@ -320,6 +348,9 @@ class GridSetupScreen extends StatelessWidget {
             color: Colors.white,
             fontWeight: FontWeight.bold,
             fontSize: 28,
+            shadows: [
+              Shadow(blurRadius: 4, color: Colors.black, offset: Offset(1, 1)),
+            ],
           ),
         ),
       ),
@@ -347,6 +378,9 @@ class GridSetupScreen extends StatelessWidget {
             color: Colors.white,
             fontWeight: FontWeight.bold,
             fontSize: 16,
+            shadows: [
+              Shadow(blurRadius: 4, color: Colors.black, offset: Offset(1, 1)),
+            ],
           ),
         ),
       ),

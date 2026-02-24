@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import '../models/character.dart';
 import '../models/game_state.dart';
 import '../services/nfc_service.dart';
+import '../services/mock_nfc_data.dart' show kMockNfcCharacterList;
 import '../widgets/token_and_board_app_bar.dart';
 
 /// Character selection screen for claiming a character
@@ -27,6 +29,21 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
   bool nfcAvailable = false;
   bool nfcScanning = false;
   String nfcStatus = 'NFC Not Started';
+  String? _scannedTagId;
+  String? _scannedCharacterName;
+
+  /// Resolve a human-readable character name from a tag ID.
+  /// Checks mock payload first, then falls back to CharacterClass enum.
+  String? _resolveCharacterName(String tagId, Map<String, dynamic>? data) {
+    // Use name from NFC payload data if present
+    final payloadName = data?['characterName'] as String?;
+    if (payloadName != null) return payloadName;
+    // Fall back to CharacterClass enum match
+    for (final cls in CharacterClass.values) {
+      if (cls.nfcTagId == tagId) return cls.name;
+    }
+    return null;
+  }
 
   @override
   void initState() {
@@ -61,8 +78,11 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
 
   void _startNFCScanning() {
     widget.nfcService.startScanning((tagId, data) {
+      final name = _resolveCharacterName(tagId, data);
       setState(() {
-        nfcStatus = 'NFC ID Scanned: $tagId';
+        _scannedTagId = tagId;
+        _scannedCharacterName = name;
+        nfcStatus = name != null ? 'Tag scanned: $name' : 'Tag scanned: $tagId';
       });
     });
 
@@ -71,57 +91,15 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
     });
   }
 
+  void _triggerMockScan(String tagId) {
+    widget.nfcService.triggerMockScan(tagId);
+  }
+
   void _stopNFCScanning() {
     widget.nfcService.stopScanning();
     setState(() {
       nfcScanning = false;
     });
-  }
-
-  void _showCharacterConfirmation() {
-    final character = widget.gameState.localPlayer.character;
-    if (character == null) return;
-
-    final charColor = Color(character.characterClass.color);
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF2d2d2d),
-        title: Text('Character Claimed!', style: TextStyle(color: charColor)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.person, color: charColor, size: 48),
-            const SizedBox(height: 16),
-            Text(
-              character.name,
-              style: TextStyle(
-                color: charColor,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              character.characterClass.name.toUpperCase(),
-              style: TextStyle(color: charColor.withOpacity(0.7), fontSize: 14),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Health: ${character.health}',
-              style: const TextStyle(color: Colors.white70),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Continue'),
-          ),
-        ],
-      ),
-    );
   }
 
   @override
@@ -167,6 +145,43 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
                     style: const TextStyle(color: Colors.white70, fontSize: 16),
                     textAlign: TextAlign.center,
                   ),
+                  if (_scannedTagId != null &&
+                      _scannedCharacterName != null) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.deepPurple.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: Colors.deepPurple.shade300,
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.badge_outlined,
+                            color: Colors.deepPurple,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            _scannedCharacterName!,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 32),
                   if (character != null)
                     Container(
@@ -236,15 +251,32 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
                         backgroundColor: nfcScanning ? Colors.red : null,
                       ),
                     ),
-                    if (character != null)
-                      ElevatedButton.icon(
-                        onPressed: widget.onCharacterSelected,
-                        icon: const Icon(Icons.check),
-                        label: const Text('Continue'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                        ),
+                    if (kMockNfc && nfcScanning) ...[
+                      ...kMockNfcCharacterList.map((char) {
+                        final tagId = char['tagId'] as String;
+                        final name = char['characterName'] as String;
+                        return ElevatedButton.icon(
+                          onPressed: () => _triggerMockScan(tagId),
+                          icon: const Icon(Icons.person),
+                          label: Text(name),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.deepPurple.shade700,
+                          ),
+                        );
+                      }),
+                    ],
+                    ElevatedButton.icon(
+                      onPressed: _scannedTagId != null
+                          ? widget.onCharacterSelected
+                          : null,
+                      icon: const Icon(Icons.check),
+                      label: const Text('Continue'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _scannedTagId != null
+                            ? Colors.green
+                            : null,
                       ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 8),

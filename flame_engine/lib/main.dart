@@ -5,6 +5,7 @@ import 'services/nfc_service.dart';
 import 'screens/scenario_selection_screen.dart';
 import 'screens/grid_setup_screen.dart';
 import 'screens/character_selection_screen.dart';
+import 'screens/character_start_placement_screen.dart';
 import 'screens/gameplay_screen.dart';
 
 void main() {
@@ -32,8 +33,18 @@ class _GameNavigatorState extends State<GameNavigator> {
   }
 
   void _onCharacterSelectionComplete() {
-    // Start the gameplay phase
-    game.startGameplay();
+    // Go to start placement screen before gameplay
+    game.gameState.phase = GamePhase.characterStartPlacement;
+    setState(() {});
+  }
+
+  void _onStartPlacementReady() {
+    game.gameState.phase = GamePhase.playing;
+    setState(() {});
+  }
+
+  void _onStartPlacementBack() {
+    game.gameState.phase = GamePhase.characterSelection;
     setState(() {});
   }
 
@@ -46,6 +57,11 @@ class _GameNavigatorState extends State<GameNavigator> {
 
   void _onScenarioSelected() {
     // Move to character selection
+    setState(() {});
+  }
+
+  void _onGameplayBack() {
+    game.gameState.phase = GamePhase.characterStartPlacement;
     setState(() {});
   }
 
@@ -85,12 +101,19 @@ class _GameNavigatorState extends State<GameNavigator> {
             onCharacterSelected: _onCharacterSelectionComplete,
             onBack: _onCharacterSelectionBack,
           );
+        } else if (phase == GamePhase.characterStartPlacement) {
+          return CharacterStartPlacementScreen(
+            gameState: game.gameState,
+            onReady: _onStartPlacementReady,
+            onBack: _onStartPlacementBack,
+          );
         } else {
           return GameplayScreen(
             game: game,
             gameState: game.gameState,
             nfcService: nfcService,
             onGameEnd: _onGameEnd,
+            onBack: _onGameplayBack,
           );
         }
       },

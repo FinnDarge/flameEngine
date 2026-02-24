@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../models/game_scenario.dart';
 import '../models/game_state.dart';
 import '../widgets/token_and_board_app_bar.dart';
@@ -71,7 +72,15 @@ class _ScenarioSelectionScreenState extends State<ScenarioSelectionScreen> {
             padding: const EdgeInsets.all(24),
             child: Column(
               children: [
-                Icon(Icons.terrain, size: 64, color: Colors.blue.shade300),
+                SvgPicture.asset(
+                  'assets/images/TB_logo.svg',
+                  width: 64,
+                  height: 64,
+                  colorFilter: ColorFilter.mode(
+                    Colors.blue.shade300,
+                    BlendMode.srcIn,
+                  ),
+                ),
                 const SizedBox(height: 16),
                 Text(
                   'Token & Board Adventures',

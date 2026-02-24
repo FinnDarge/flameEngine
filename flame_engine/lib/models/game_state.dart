@@ -227,6 +227,7 @@ enum GamePhase {
   scenarioSelection,
   puzzleGridSetup,
   characterSelection,
+  characterStartPlacement,
   playing,
   victory,
   defeat,

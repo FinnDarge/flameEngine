@@ -1,28 +1,29 @@
 import 'package:flame/components.dart';
+import '../services/mock_nfc_data.dart';
 
 /// Represents a playable character in the game
 class Character {
   /// Character type/class
   final CharacterClass characterClass;
-  
+
   /// Unique NFC tag ID for this character figure
   final String nfcTagId;
-  
+
   /// Current grid position (row, col)
   Vector2 position;
-  
+
   /// Character stats
   int health;
   final int maxHealth;
   int attack;
   int defense;
-  
+
   /// Inventory - items collected
   final List<String> inventory;
-  
+
   /// Is this character defeated?
   bool isDefeated;
-  
+
   Character({
     required this.characterClass,
     required this.nfcTagId,
@@ -83,7 +84,8 @@ enum CharacterClass {
   warrior,
   mage,
   rogue,
-  cleric;
+  cleric,
+  wizard;
 
   String get name {
     switch (this) {
@@ -95,6 +97,8 @@ enum CharacterClass {
         return 'Rogue';
       case CharacterClass.cleric:
         return 'Cleric';
+      case CharacterClass.wizard:
+        return kWizardCharacterName;
     }
   }
 
@@ -108,6 +112,8 @@ enum CharacterClass {
         return 0xFF44FF44; // Green
       case CharacterClass.cleric:
         return 0xFFFFFF44; // Yellow
+      case CharacterClass.wizard:
+        return 0xFFAA44FF; // Purple
     }
   }
 
@@ -122,6 +128,18 @@ enum CharacterClass {
         return 'char_rogue';
       case CharacterClass.cleric:
         return 'char_cleric';
+      case CharacterClass.wizard:
+        return kWizardNfcTagId;
+    }
+  }
+
+  /// UUID for this character class (used for persistent identity)
+  String? get uuid {
+    switch (this) {
+      case CharacterClass.wizard:
+        return kWizardUuid;
+      default:
+        return null;
     }
   }
 }
