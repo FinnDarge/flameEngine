@@ -1,0 +1,19 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Run flame_engine on macOS (mock NFC)",
+			"type": "shell",
+			"command": "cd ${workspaceFolder}/flame_engine && flutter run -d macos --dart-define=MOCK_NFC=true",
+			"isBackground": true,
+			"problemMatcher": []
+		},
+		{
+			"label": "Run flame_engine on Android (Pixel 6a)",
+			"type": "shell",
+			"command": "cd ${workspaceFolder}/flame_engine && flutter run -d 31311JEGR02994",
+			"isBackground": true,
+			"problemMatcher": []
+		}
+	]
+}

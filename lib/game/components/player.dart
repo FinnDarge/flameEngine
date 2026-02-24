@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 /// A simple player component that can be moved around the screen
 class Player extends PositionComponent {
   static const double speed = 200.0;
-  static const double size = 50.0;
+  static const double playerSize = 50.0;
 
   Vector2? targetPosition;
   late Paint _paint;
@@ -14,10 +14,10 @@ class Player extends PositionComponent {
     await super.onLoad();
 
     // Set initial size and position
-    size = Vector2.all(size);
+    size = Vector2.all(playerSize);
     position = Vector2(
-      (parent as PositionComponent).size.x / 2 - size / 2,
-      (parent as PositionComponent).size.y / 2 - size / 2,
+      (parent as PositionComponent).size.x / 2 - playerSize / 2,
+      (parent as PositionComponent).size.y / 2 - playerSize / 2,
     );
     anchor = Anchor.center;
 

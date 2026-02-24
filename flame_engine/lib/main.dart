@@ -25,6 +25,10 @@ class GameNavigator extends StatefulWidget {
 }
 
 class _GameNavigatorState extends State<GameNavigator> {
+  // Set to true to skip backend API calls and use hardcoded mock data.
+  // Toggle back to false when the server is reachable again.
+  static const bool _kSkipApi = true;
+
   late DungeonGame game;
   final NFCService nfcService = NFCService();
   final ManagementApiService _api = ManagementApiService();
@@ -37,19 +41,25 @@ class _GameNavigatorState extends State<GameNavigator> {
   }
 
   Future<void> _loadApiThenStart() async {
-    await _api.load();
-    // Overwrite mock NFC character data with live pieces from the API
-    applyApiData(_api);
+    if (!_kSkipApi) {
+      await _api.load();
+      // Overwrite mock NFC character data with live pieces from the API
+      applyApiData(_api);
+    }
 
     // Build the game using board dimensions from the API (fallback 4×4)
-    final board = _api.primaryBoard;
+    final board = _kSkipApi ? null : _api.primaryBoard;
     final rows = board?.height ?? 4;
     final cols = board?.width ?? 4;
     game = DungeonGame(rows: rows, columns: cols);
 
     // Store API players in game state for multiplayer use
-    game.gameState.apiPlayers = List.unmodifiable(_api.players);
-    game.gameState.apiBoards = List.unmodifiable(_api.boards);
+    game.gameState.apiPlayers = _kSkipApi
+        ? const []
+        : List.unmodifiable(_api.players);
+    game.gameState.apiBoards = _kSkipApi
+        ? const []
+        : List.unmodifiable(_api.boards);
 
     if (mounted) setState(() => _apiLoading = false);
   }

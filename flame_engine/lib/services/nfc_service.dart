@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:nfc_manager/nfc_manager.dart';
 import 'mock_nfc_data.dart';
 
@@ -128,35 +129,35 @@ class NFCService {
       throw Exception('NFC is not available on this device');
     }
 
-    bool writeSuccess = false;
+    final completer = Completer<bool>();
 
     await NfcManager.instance.startSession(
       onDiscovered: (NfcTag tag) async {
         var ndef = Ndef.from(tag);
         if (ndef == null || !ndef.isWritable) {
-          writeSuccess = false;
           await NfcManager.instance.stopSession(
             errorMessage: 'Tag is not writable',
           );
+          completer.complete(false);
           return;
         }
 
-        NdefMessage ndefMessage = NdefMessage([NdefRecord.createText(message)]);
+        final ndefMessage = NdefMessage([NdefRecord.createText(message)]);
 
         try {
           await ndef.write(ndefMessage);
-          writeSuccess = true;
           await NfcManager.instance.stopSession();
+          completer.complete(true);
         } catch (e) {
-          writeSuccess = false;
           await NfcManager.instance.stopSession(
             errorMessage: 'Write failed: $e',
           );
+          completer.complete(false);
         }
       },
     );
 
-    return writeSuccess;
+    return completer.future;
   }
 
   bool get isScanning => _isScanning;

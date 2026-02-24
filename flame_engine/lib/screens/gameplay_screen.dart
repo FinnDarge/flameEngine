@@ -1,3 +1,4 @@
+import 'dart:async' show unawaited;
 import 'package:flutter/material.dart';
 import 'package:flame/game.dart';
 import '../models/character.dart';
@@ -44,28 +45,36 @@ class _GameplayScreenState extends State<GameplayScreen> {
       nfcStatus = available ? _getDefaultNFCStatus() : 'NFC Not Available';
     });
     if (available) {
-      _startNFCScanning();
+      unawaited(_startNFCScanning());
     }
   }
 
-  void _startNFCScanning() {
-    widget.nfcService.startScanning((tagId, data) {
-      // Pass NFC event to game logic
-      widget.game.handleNFCTag(tagId, data);
+  Future<void> _startNFCScanning() async {
+    try {
+      await widget.nfcService.startScanning((tagId, data) {
+        // Pass NFC event to game logic
+        widget.game.handleNFCTag(tagId, data);
 
-      setState(() {
-        nfcStatus = 'Tag detected: $tagId';
-      });
+        setState(() {
+          nfcStatus = 'Tag detected: $tagId';
+        });
 
-      // Auto-restart scanning after a delay
-      Future.delayed(const Duration(seconds: 2), () {
-        if (mounted) {
-          setState(() {
-            nfcStatus = _getDefaultNFCStatus();
-          });
-        }
+        // Auto-restart scanning after a delay
+        Future.delayed(const Duration(seconds: 2), () {
+          if (mounted) {
+            setState(() {
+              nfcStatus = _getDefaultNFCStatus();
+            });
+          }
+        });
       });
-    });
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          nfcStatus = 'NFC error: $e';
+        });
+      }
+    }
   }
 
   String _getDefaultNFCStatus() {
@@ -103,7 +112,7 @@ class _GameplayScreenState extends State<GameplayScreen> {
               width: 68,
               height: 68,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
+              errorBuilder: (_, _, _) => Container(
                 width: 68,
                 height: 68,
                 color: Color(character.color).withOpacity(0.3),

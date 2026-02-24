@@ -2,7 +2,12 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 const String _kApiBase = 'https://tokenandboard.schokoladensouffle.eu/api';
-const String _kApiToken = 'leuheidaeJoo1aNgeethei0sho0iek8i';
+// Pass via: --dart-define=API_TOKEN=<your_token>
+// Falls back to the development token when not provided.
+const String _kApiToken = String.fromEnvironment(
+  'API_TOKEN',
+  defaultValue: 'leuheidaeJoo1aNgeethei0sho0iek8i',
+);
 
 // ── Models ────────────────────────────────────────────────────────────────────
 
@@ -175,9 +180,15 @@ class ManagementApiService {
         '${boards.length} boards, ${pieces.length} pieces, '
         '${players.length} players',
       );
-      for (final p in pieces) print('  • $p');
-      for (final pl in players) print('  • $pl');
-      for (final b in boards) print('  • $b');
+      for (final p in pieces) {
+        print('  • $p');
+      }
+      for (final pl in players) {
+        print('  • $pl');
+      }
+      for (final b in boards) {
+        print('  • $b');
+      }
     } catch (e) {
       print('⚠ ManagementApiService.load() failed: $e');
     }

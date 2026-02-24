@@ -134,7 +134,12 @@ class DungeonGame extends FlameGame {
       final destination = Vector2(col.toDouble(), row.toDouble());
 
       // Attempt move
-      final character = gameState.localPlayer.character!;
+      final character = gameState.localPlayer.character;
+      if (character == null) {
+        print('⚠ No character selected for this player!');
+        lastTappedCharacterNfc = null;
+        return;
+      }
       final moved = gameState.moveCharacter(character, destination);
 
       if (moved) {

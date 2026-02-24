@@ -39,7 +39,9 @@ class GameState {
   List<ApiBoard> apiBoards = const [];
 
   GameState({required this.grid, Vector2? goal})
-    : goalPosition = goal ?? Vector2(3, 3) {
+    : goalPosition =
+          goal ??
+          Vector2((grid.columns - 1).toDouble(), (grid.rows - 1).toDouble()) {
     // (4,4) in 1-indexed = (3,3) in 0-indexed
     // Create local player with unique ID
     localPlayer = Player(id: DateTime.now().millisecondsSinceEpoch.toString());
@@ -172,6 +174,7 @@ class GameState {
 
   /// Advance to next turn
   void nextTurn() {
+    if (characters.isEmpty) return;
     currentTurnIndex++;
     if (currentTurnIndex % characters.length == 0) {
       turnNumber++;
