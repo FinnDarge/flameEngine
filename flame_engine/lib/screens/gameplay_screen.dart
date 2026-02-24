@@ -29,36 +29,21 @@ class GameplayScreen extends StatefulWidget {
 
 class _GameplayScreenState extends State<GameplayScreen> {
   bool nfcAvailable = false;
-  bool nfcScanning = false;
-  String nfcStatus = 'NFC Not Started';
+  String nfcStatus = 'Initialising NFC...';
 
   @override
   void initState() {
     super.initState();
-    _checkNFCAvailability();
+    _initNFC();
   }
 
-  Future<void> _checkNFCAvailability() async {
+  Future<void> _initNFC() async {
     final available = await widget.nfcService.checkAvailability();
     setState(() {
       nfcAvailable = available;
-      nfcStatus = available
-          ? 'NFC Available - Tap button to start'
-          : 'NFC Not Available';
+      nfcStatus = available ? _getDefaultNFCStatus() : 'NFC Not Available';
     });
-  }
-
-  void _toggleNFCScanning() {
-    if (!nfcAvailable) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('NFC not available on this device')),
-      );
-      return;
-    }
-
-    if (nfcScanning) {
-      _stopNFCScanning();
-    } else {
+    if (available) {
       _startNFCScanning();
     }
   }
@@ -74,17 +59,12 @@ class _GameplayScreenState extends State<GameplayScreen> {
 
       // Auto-restart scanning after a delay
       Future.delayed(const Duration(seconds: 2), () {
-        if (mounted && nfcScanning) {
+        if (mounted) {
           setState(() {
             nfcStatus = _getDefaultNFCStatus();
           });
         }
       });
-    });
-
-    setState(() {
-      nfcScanning = true;
-      nfcStatus = _getDefaultNFCStatus();
     });
   }
 
@@ -96,18 +76,61 @@ class _GameplayScreenState extends State<GameplayScreen> {
     }
   }
 
-  void _stopNFCScanning() {
-    widget.nfcService.stopScanning();
-    setState(() {
-      nfcScanning = false;
-      nfcStatus = 'NFC Stopped';
-    });
-  }
-
   @override
   void dispose() {
     widget.nfcService.stopScanning();
     super.dispose();
+  }
+
+  Widget _buildCharacterPortrait(Character character) {
+    return Container(
+      width: 72,
+      decoration: BoxDecoration(
+        color: const Color(0xCC1a1a1a),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: Color(character.color).withOpacity(0.8),
+          width: 2,
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+            child: Image.asset(
+              character.characterClass.imagePath,
+              width: 68,
+              height: 68,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(
+                width: 68,
+                height: 68,
+                color: Color(character.color).withOpacity(0.3),
+                child: Icon(
+                  Icons.person,
+                  color: Color(character.color),
+                  size: 36,
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Text(
+              character.name,
+              style: TextStyle(
+                color: Color(character.color),
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildTurnStatus(
@@ -192,39 +215,17 @@ class _GameplayScreenState extends State<GameplayScreen> {
               ],
             ),
           ),
-          // Game widget
-          Expanded(child: GameWidget(game: widget.game)),
-          // Control panel
-          Container(
-            padding: const EdgeInsets.all(16),
-            color: const Color(0xFF2d2d2d),
-            child: Column(
+          // Game widget with character portrait overlay
+          Expanded(
+            child: Stack(
               children: [
-                Wrap(
-                  alignment: WrapAlignment.center,
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        // Reset game logic would be handled by parent
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Grid reset!')),
-                        );
-                      },
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Reset'),
-                    ),
-                    ElevatedButton.icon(
-                      onPressed: nfcAvailable ? _toggleNFCScanning : null,
-                      icon: Icon(nfcScanning ? Icons.stop : Icons.nfc),
-                      label: Text(nfcScanning ? 'Stop NFC' : 'Start NFC'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: nfcScanning ? Colors.red : null,
-                      ),
-                    ),
-                  ],
-                ),
+                GameWidget(game: widget.game),
+                if (player.character != null)
+                  Positioned(
+                    top: 12,
+                    left: 12,
+                    child: _buildCharacterPortrait(player.character!),
+                  ),
               ],
             ),
           ),
