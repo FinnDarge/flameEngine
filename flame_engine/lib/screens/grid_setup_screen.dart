@@ -157,6 +157,10 @@ class GridSetupScreen extends StatelessWidget {
         Container(
           decoration: BoxDecoration(
             border: Border.all(color: Colors.blue.shade200, width: 3),
+            image: const DecorationImage(
+              image: AssetImage('assets/images/tiles/tileA.jpg'),
+              fit: BoxFit.cover,
+            ),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -240,10 +244,21 @@ class GridSetupScreen extends StatelessWidget {
       ],
     ];
 
+    const tileImages = [
+      'assets/images/tiles/tileA.jpg',
+      'assets/images/tiles/tileB.jpg',
+      'assets/images/tiles/tileC.jpg',
+      'assets/images/tiles/tileD.jpg',
+    ];
+
     Widget buildTile(int t) {
       return Container(
         decoration: BoxDecoration(
           border: Border.all(color: tileBorderColors[t], width: 3),
+          image: DecorationImage(
+            image: AssetImage(tileImages[t]),
+            fit: BoxFit.cover,
+          ),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -339,7 +354,7 @@ class GridSetupScreen extends StatelessWidget {
       margin: const EdgeInsets.all(3),
       decoration: BoxDecoration(
         border: Border.all(color: borderColor, width: 2),
-        color: backgroundColor,
+        color: Colors.transparent,
       ),
       child: Center(
         child: Text(
@@ -369,7 +384,7 @@ class GridSetupScreen extends StatelessWidget {
       margin: const EdgeInsets.all(2),
       decoration: BoxDecoration(
         border: Border.all(color: borderColor, width: 1.5),
-        color: backgroundColor,
+        color: Colors.transparent,
       ),
       child: Center(
         child: Text(

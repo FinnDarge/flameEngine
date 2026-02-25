@@ -15,7 +15,7 @@ String kWizardNfcTagId = '53:F2:8C:F5:62:00:01';
 String kWizardUuid = 'a3f8b2c1-550e-4f92-b1de-7e3a9d8c2f14';
 
 /// Display name of the Wizard character.
-String kWizardCharacterName = 'Zauberer';
+String kWizardCharacterName = 'Wizard';
 
 // ── Warrior (default fallback) ────────────────────────────────────────────────
 
