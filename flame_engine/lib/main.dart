@@ -47,7 +47,7 @@ class _GameNavigatorState extends State<GameNavigator> {
       applyApiData(_api);
     }
 
-    // Build the game using board dimensions from the API (fallback 4×4)
+    // Build the game with default 4x4 grid (will be recreated when scenario is selected)
     final board = _kSkipApi ? null : _api.primaryBoard;
     final rows = board?.height ?? 4;
     final cols = board?.width ?? 4;
@@ -71,7 +71,7 @@ class _GameNavigatorState extends State<GameNavigator> {
   }
 
   void _onStartPlacementReady() {
-    game.gameState.phase = GamePhase.playing;
+    game.startGameplay(); // This sets phase to playing and ensures character sprites exist
     setState(() {});
   }
 
@@ -88,7 +88,27 @@ class _GameNavigatorState extends State<GameNavigator> {
   }
 
   void _onScenarioSelected() {
-    // Move to character selection
+    // Recreate game with grid size matching the selected scenario
+    final scenario = game.gameState.selectedScenario;
+    if (scenario != null) {
+      final gridSize = scenario.gridSize;
+      
+      // Store old game state data that needs to persist
+      final apiPlayers = game.gameState.apiPlayers;
+      final apiBoards = game.gameState.apiBoards;
+      final selectedScenario = game.gameState.selectedScenario;
+      final phase = game.gameState.phase;
+      
+      // Create new game with correct grid size
+      game = DungeonGame(rows: gridSize, columns: gridSize);
+      
+      // Restore persisted data
+      game.gameState.apiPlayers = apiPlayers;
+      game.gameState.apiBoards = apiBoards;
+      game.gameState.selectedScenario = selectedScenario;
+      game.gameState.phase = phase;
+    }
+    
     setState(() {});
   }
 

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/character.dart';
 import '../models/game_state.dart';
-import '../services/nfc_service.dart';
-import '../services/mock_nfc_data.dart' show kMockNfcCharacterList;
+import '../services/nfc_service.dart' show NFCService, kMockNfc;
+import '../services/mock_nfc_data.dart' show kMockNfcCharacterList, kVanguardNfcTagId;
 import '../widgets/token_and_board_app_bar.dart';
 
 /// Character selection screen for claiming a character
@@ -82,6 +82,15 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
 
   void _triggerMockScan(String tagId) {
     widget.nfcService.triggerMockScan(tagId);
+  }
+
+  /// Quick dev shortcut - select Vanguard and continue immediately
+  void _quickDevVanguard() {
+    _triggerMockScan(kVanguardNfcTagId);
+    // Give the mock scan a moment to process
+    Future.delayed(const Duration(milliseconds: 100), () {
+      widget.onCharacterSelected();
+    });
   }
 
   @override
@@ -193,6 +202,21 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
               spacing: 12,
               runSpacing: 12,
               children: [
+                // Quick dev button for fast iteration
+                if (kMockNfc) ...[
+                  ElevatedButton.icon(
+                    onPressed: _quickDevVanguard,
+                    icon: const Icon(Icons.flash_on),
+                    label: const Text('Quick Dev (Vanguard)'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange.shade700,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
+                    ),
+                  ),
+                ],
                 if (kMockNfc) ...[
                   ...kMockNfcCharacterList.map((char) {
                     final tagId = char['tagId'] as String;

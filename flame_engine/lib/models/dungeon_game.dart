@@ -1,43 +1,54 @@
 import 'package:flame/game.dart';
+import 'package:flame/flame.dart';
 import 'game_grid.dart';
 import 'game_state.dart';
 import 'character.dart';
 import '../components/grid_component.dart';
-import '../utils/spritesheet_loader.dart';
+import '../components/character_sprite_component.dart';
 
 /// Main Flame game class
 class DungeonGame extends FlameGame {
   late GameState gameState;
   GridComponent? gridComponent;
-  final SpritesheetLoader spritesheetLoader = SpritesheetLoader();
+  
+  // Track character sprite components
+  final Map<Character, CharacterSpriteComponent> characterSprites = {};
+  late final double cellSize;
 
   // Track last tapped NFC tag for movement flow
   String? lastTappedCharacterNfc;
 
   DungeonGame({int rows = 4, int columns = 4}) {
+    // Calculate cell size to make grid fill consistent space regardless of dimensions
+    // Target grid size of 400px, so cellSize = 400 / gridDimension
+    cellSize = 400.0 / rows.toDouble();
+    
     final grid = GameGrid(rows: rows, columns: columns);
-    grid.generateRandomDungeon(); // Dynamic dungeon!
+    grid.initializeStaticGrid(); // Static grid - backend drives logic
 
     gameState = GameState(grid: grid);
-    print('✓ DungeonGame created - Phase: ${gameState.phase.name}');
   }
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
 
-    // Load the spritesheet first
-    await spritesheetLoader.load();
+    // Preload tile images to catch any loading errors early
+    try {
+      await Flame.images.load('tiles/Stone2.jpg');
+      await Flame.images.load('tiles/StoneCorner1.jpg');
+      await Flame.images.load('tiles/StoneCorner2.jpg');
+    } catch (e) {
+      print('⚠ Error preloading tile images: $e');
+    }
 
     // Create visual grid component
     gridComponent = GridComponent(
       grid: gameState.grid,
-      cellSize: 100.0,
-      spritesheetLoader: spritesheetLoader,
+      cellSize: cellSize,
     );
 
     await add(gridComponent!);
-    print('✓ Game loaded successfully');
   }
 
   @override
@@ -72,6 +83,8 @@ class DungeonGame extends FlameGame {
     if (success) {
       print('✓ You claimed: ${gameState.localPlayer.character!.name}');
       print('  Tap "Start Game" when all players are ready!');
+      // Add character sprite for the selected character
+      _addCharacterSprite(gameState.localPlayer.character!);
     }
   }
 
@@ -145,6 +158,9 @@ class DungeonGame extends FlameGame {
       if (moved) {
         // Update visual
         gridComponent?.updateAllTiles();
+        
+        // Update character sprite position
+        _updateCharacterSpritePosition(character);
 
         // End turn
         gameState.nextTurn();
@@ -165,8 +181,14 @@ class DungeonGame extends FlameGame {
 
   /// Reset the game to initial state
   void resetGame() {
-    gameState.grid.generateRandomDungeon();
+    gameState.grid.initializeStaticGrid();
     gridComponent?.updateAllTiles();
+
+    // Remove all character sprites
+    for (final sprite in characterSprites.values) {
+      remove(sprite);
+    }
+    characterSprites.clear();
 
     // Reset game state
     gameState.characters.clear();
@@ -175,13 +197,62 @@ class DungeonGame extends FlameGame {
     gameState.currentTurnIndex = 0;
     gameState.turnNumber = 1;
     lastTappedCharacterNfc = null;
-
-    print('🔄 Game reset - Select your character!');
   }
 
   /// Start the game after character selection
-  void startGameplay() {
+  Future<void> startGameplay() async {
     gameState.startGame();
     gridComponent?.updateAllTiles();
+    
+    // Wait for the game to fully load (onLoad complete)
+    await loaded;
+    
+    // Ensure character sprites exist for all players
+    await ensureCharacterSprites();
+    
+    // Update all character sprite positions to match their grid positions
+    for (final entry in characterSprites.entries) {
+      entry.value.updatePosition();
+    }
+  }
+  
+  /// Ensure character sprites exist for all characters that have been claimed
+  Future<void> ensureCharacterSprites() async {
+    // Add sprite for local player's character if it exists and doesn't have a sprite
+    final localCharacter = gameState.localPlayer.character;
+    if (localCharacter != null && !characterSprites.containsKey(localCharacter)) {
+      await _addCharacterSprite(localCharacter);
+    }
+    
+    // TODO: Add sprites for other players' characters when multiplayer is implemented
+  }
+  
+  /// Add a character sprite component to the game
+  Future<void> _addCharacterSprite(Character character) async {
+    // Don't add if already exists
+    if (characterSprites.containsKey(character)) return;
+    
+    // Wait for grid component to be fully loaded
+    if (gridComponent == null) return;
+    
+    // Wait for grid to finish loading (tile images, etc.)
+    await gridComponent!.loaded;
+    
+    final sprite = CharacterSpriteComponent(
+      character: character,
+      cellSize: cellSize,
+    );
+    
+    // Add sprite as a child of the grid component so it moves with the grid
+    await gridComponent!.add(sprite);
+    characterSprites[character] = sprite;
+  }
+  
+  /// Update a character sprite's position
+  void _updateCharacterSpritePosition(Character character) {
+    final sprite = characterSprites[character];
+    if (sprite != null) {
+      sprite.updatePosition();
+    }
   }
 }

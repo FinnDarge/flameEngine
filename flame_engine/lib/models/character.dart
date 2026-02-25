@@ -1,6 +1,11 @@
 import 'package:flame/components.dart';
 import '../services/mock_nfc_data.dart'
-    show kWizardCharacterName, kWizardNfcTagId, kWizardUuid, kWarriorNfcTagId;
+    show kWizardCharacterName, kWizardNfcTagId, kWizardUuid, 
+         kWarriorNfcTagId, kWarriorUuid,
+         kControllerNfcTagId, kControllerUuid,
+         kEngineerNfcTagId, kEngineerUuid,
+         kStrikerNfcTagId, kStrikerUuid,
+         kVanguardNfcTagId, kVanguardUuid;
 
 /// Represents a playable character in the game
 class Character {
@@ -29,10 +34,13 @@ class Character {
     required this.characterClass,
     required this.nfcTagId,
     required this.position,
-    this.maxHealth = 10,
-    this.attack = 3,
-    this.defense = 1,
-  }) : health = maxHealth,
+    int? maxHealth,
+    int? attack,
+    int? defense,
+  }) : maxHealth = maxHealth ?? characterClass.maxHealth,
+       attack = attack ?? characterClass.attack,
+       defense = defense ?? characterClass.defense,
+       health = maxHealth ?? characterClass.maxHealth,
        inventory = [],
        isDefeated = false;
 
@@ -83,7 +91,11 @@ class Character {
 /// Character classes/types
 enum CharacterClass {
   warrior,
-  wizard;
+  wizard,
+  controller,
+  engineer,
+  striker,
+  vanguard;
 
   String get name {
     switch (this) {
@@ -91,6 +103,14 @@ enum CharacterClass {
         return 'Warrior';
       case CharacterClass.wizard:
         return kWizardCharacterName;
+      case CharacterClass.controller:
+        return 'Controller';
+      case CharacterClass.engineer:
+        return 'Engineer';
+      case CharacterClass.striker:
+        return 'Striker';
+      case CharacterClass.vanguard:
+        return 'Vanguard';
     }
   }
 
@@ -100,6 +120,14 @@ enum CharacterClass {
         return 0xFFFF4444; // Red
       case CharacterClass.wizard:
         return 0xFFAA44FF; // Purple
+      case CharacterClass.controller:
+        return 0xFF4444FF; // Blue
+      case CharacterClass.engineer:
+        return 0xFFFFAA44; // Orange
+      case CharacterClass.striker:
+        return 0xFF44FF44; // Green
+      case CharacterClass.vanguard:
+        return 0xFF888888; // Gray
     }
   }
 
@@ -110,6 +138,14 @@ enum CharacterClass {
         return kWarriorNfcTagId;
       case CharacterClass.wizard:
         return kWizardNfcTagId;
+      case CharacterClass.controller:
+        return kControllerNfcTagId;
+      case CharacterClass.engineer:
+        return kEngineerNfcTagId;
+      case CharacterClass.striker:
+        return kStrikerNfcTagId;
+      case CharacterClass.vanguard:
+        return kVanguardNfcTagId;
     }
   }
 
@@ -120,6 +156,14 @@ enum CharacterClass {
         return 'assets/images/characters/warrior.jpg';
       case CharacterClass.wizard:
         return 'assets/images/characters/wizard.jpg';
+      case CharacterClass.controller:
+        return 'assets/images/characters/ControllerSingle.png';
+      case CharacterClass.engineer:
+        return 'assets/images/characters/EngineerSingle.png';
+      case CharacterClass.striker:
+        return 'assets/images/characters/StrikerSingle.png';
+      case CharacterClass.vanguard:
+        return 'assets/images/characters/VanguardSingle.png';
     }
   }
 
@@ -128,8 +172,70 @@ enum CharacterClass {
     switch (this) {
       case CharacterClass.wizard:
         return kWizardUuid;
-      default:
-        return null;
+      case CharacterClass.warrior:
+        return kWarriorUuid;
+      case CharacterClass.controller:
+        return kControllerUuid;
+      case CharacterClass.engineer:
+        return kEngineerUuid;
+      case CharacterClass.striker:
+        return kStrikerUuid;
+      case CharacterClass.vanguard:
+        return kVanguardUuid;
+    }
+  }
+
+  /// Base max health for this character class
+  int get maxHealth {
+    switch (this) {
+      case CharacterClass.wizard:
+        return 8;
+      case CharacterClass.warrior:
+        return 12;
+      case CharacterClass.controller:
+        return 10;
+      case CharacterClass.engineer:
+        return 10;
+      case CharacterClass.striker:
+        return 8;
+      case CharacterClass.vanguard:
+        return 14;
+    }
+  }
+
+  /// Base attack for this character class
+  int get attack {
+    switch (this) {
+      case CharacterClass.wizard:
+        return 5;
+      case CharacterClass.warrior:
+        return 4;
+      case CharacterClass.controller:
+        return 2;
+      case CharacterClass.engineer:
+        return 3;
+      case CharacterClass.striker:
+        return 6;
+      case CharacterClass.vanguard:
+        return 3;
+    }
+  }
+
+  /// Base defense for this character class
+  int get defense {
+    switch (this) {
+      case CharacterClass.wizard:
+        return 1;
+      case CharacterClass.warrior:
+        return 2;
+      case CharacterClass.controller:
+        return 4;
+      case CharacterClass.engineer:
+        return 3;
+      case CharacterClass.striker:
+        return 1;
+      case CharacterClass.vanguard:
+        return 3;
     }
   }
 }

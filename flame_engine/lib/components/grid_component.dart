@@ -1,6 +1,5 @@
 import 'package:flame/components.dart';
 import '../models/game_grid.dart';
-import '../utils/spritesheet_loader.dart';
 import 'tile_component.dart';
 
 /// Component that renders the entire game grid
@@ -8,18 +7,17 @@ import 'tile_component.dart';
 class GridComponent extends PositionComponent {
   final GameGrid grid;
   final double cellSize;
-  final SpritesheetLoader? spritesheetLoader;
   final List<List<TileComponent>> tileComponents = [];
 
   GridComponent({
     required this.grid,
     this.cellSize = 100.0,
-    this.spritesheetLoader,
   }) : super(
           size: Vector2(
             grid.columns * cellSize,
             grid.rows * cellSize,
           ),
+          priority: 0, // Grid renders at base priority, characters at priority 10
         );
 
   @override
@@ -31,6 +29,20 @@ class GridComponent extends PositionComponent {
       final rowComponents = <TileComponent>[];
       for (int col = 0; col < grid.columns; col++) {
         final tile = grid.getTile(row, col)!;
+        
+        // Determine if this is a corner tile
+        final isTopLeft = row == 0 && col == 0;
+        final isTopRight = row == 0 && col == grid.columns - 1;
+        final isBottomLeft = row == grid.rows - 1 && col == 0;
+        final isBottomRight = row == grid.rows - 1 && col == grid.columns - 1;
+        final isCorner = isTopLeft || isTopRight || isBottomLeft || isBottomRight;
+        
+        String? cornerType;
+        if (isTopLeft) cornerType = 'topleft';
+        else if (isTopRight) cornerType = 'topright';
+        else if (isBottomLeft) cornerType = 'bottomleft';
+        else if (isBottomRight) cornerType = 'bottomright';
+        
         final tileComponent = TileComponent(
           tile: tile,
           cellSize: cellSize,
@@ -38,7 +50,8 @@ class GridComponent extends PositionComponent {
             col * cellSize,
             row * cellSize,
           ),
-          spritesheetLoader: spritesheetLoader,
+          isCorner: isCorner,
+          cornerType: cornerType,
         );
 
         await add(tileComponent);
@@ -46,8 +59,6 @@ class GridComponent extends PositionComponent {
       }
       tileComponents.add(rowComponents);
     }
-    
-    print('✓ Grid rendered: ${grid.rows}x${grid.columns} rooms (${size.x}x${size.y} pixels)');
   }
 
   /// Updates the visual representation of a specific tile

@@ -1,0 +1,18 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Flutter (Mock NFC)",
+      "request": "launch",
+      "type": "dart",
+      "args": [
+        "--dart-define=MOCK_NFC=true"
+      ]
+    },
+    {
+      "name": "Flutter (Real NFC)",
+      "request": "launch",
+      "type": "dart"
+    }
+  ]
+}

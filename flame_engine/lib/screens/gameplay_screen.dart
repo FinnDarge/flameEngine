@@ -6,6 +6,7 @@ import '../models/game_state.dart';
 import '../services/nfc_service.dart';
 import '../models/dungeon_game.dart';
 import '../widgets/token_and_board_app_bar.dart';
+import '../widgets/inventory_overlay.dart';
 
 /// Gameplay screen for the actual game
 class GameplayScreen extends StatefulWidget {
@@ -31,6 +32,7 @@ class GameplayScreen extends StatefulWidget {
 class _GameplayScreenState extends State<GameplayScreen> {
   bool nfcAvailable = false;
   String nfcStatus = 'Initialising NFC...';
+  bool showInventory = false;
 
   @override
   void initState() {
@@ -92,6 +94,8 @@ class _GameplayScreenState extends State<GameplayScreen> {
   }
 
   Widget _buildCharacterPortrait(Character character) {
+    final player = widget.gameState.localPlayer;
+    
     return Container(
       width: 72,
       decoration: BoxDecoration(
@@ -125,16 +129,48 @@ class _GameplayScreenState extends State<GameplayScreen> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Text(
-              character.name,
-              style: TextStyle(
-                color: Color(character.color),
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-              ),
-              textAlign: TextAlign.center,
-              overflow: TextOverflow.ellipsis,
+            padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+            child: Column(
+              children: [
+                Text(
+                  character.name,
+                  style: TextStyle(
+                    color: Color(character.color),
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                // Health bar
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.favorite,
+                        color: Colors.red,
+                        size: 10,
+                      ),
+                      const SizedBox(width: 2),
+                      Text(
+                        '${character.health}/${player.effectiveMaxHealth}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -167,8 +203,8 @@ class _GameplayScreenState extends State<GameplayScreen> {
           Expanded(
             child: Text(
               isYourTurn
-                  ? 'YOUR TURN - Tap ${localCharacter?.name}, then tap destination'
-                  : 'Current turn: ${currentCharacter?.name ?? "Unknown"}',
+                  ? 'YOUR TURN - Tap ${localCharacter?.name ?? "your character"}, then tap destination'
+                  : 'Current turn: ${currentCharacter?.name ?? "Waiting for players..."}',
               style: TextStyle(
                 color: isYourTurn ? Colors.green : Colors.white70,
                 fontWeight: isYourTurn ? FontWeight.bold : FontWeight.normal,
@@ -224,21 +260,93 @@ class _GameplayScreenState extends State<GameplayScreen> {
               ],
             ),
           ),
-          // Game widget with character portrait overlay
+          // Game widget
           Expanded(
             child: Stack(
               children: [
                 GameWidget(game: widget.game),
-                if (player.character != null)
-                  Positioned(
-                    top: 12,
-                    left: 12,
-                    child: _buildCharacterPortrait(player.character!),
+                // Inventory overlay
+                if (showInventory)
+                  InventoryOverlay(
+                    player: player,
+                    onClose: () {
+                      setState(() {
+                        showInventory = false;
+                      });
+                    },
                   ),
               ],
             ),
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          setState(() {
+            showInventory = !showInventory;
+          });
+        },
+        backgroundColor: const Color(0xFF1a2332),
+        foregroundColor: const Color(0xFF00d9ff),
+        elevation: 8,
+        icon: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: const Color(0xFF00d9ff).withValues(alpha: 0.5),
+                  width: 2,
+                ),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.inventory_2_outlined, size: 24),
+            ),
+            if (player.inventory.usedSlots > 0)
+              Positioned(
+                top: -6,
+                right: -6,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF00d9ff), Color(0xFF0088cc)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: const Color(0xFF1a2332), width: 2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF00d9ff).withValues(alpha: 0.5),
+                        blurRadius: 4,
+                        spreadRadius: 1,
+                      ),
+                    ],
+                  ),
+                  constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
+                  child: Center(
+                    child: Text(
+                      '${player.inventory.usedSlots}',
+                      style: const TextStyle(
+                        color: Color(0xFF1a2332),
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+        label: const Text(
+          'INVENTORY',
+          style: TextStyle(
+            letterSpacing: 1.2,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
     );
   }

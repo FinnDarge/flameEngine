@@ -217,6 +217,19 @@ class GameGrid {
     print('  - Start: (1,1), Goal: ($rows,$columns)');
   }
 
+  /// Initialize a static grid with all floor tiles
+  /// No randomization - just sets up a basic board for backend-driven gameplay
+  void initializeStaticGrid() {
+    // Set all tiles to floor and assign NFC tags
+    for (int row = 0; row < rows; row++) {
+      for (int col = 0; col < columns; col++) {
+        setTileType(row, col, TileType.floor);
+        tiles[row][col].isRevealed = true;
+        tiles[row][col].nfcTagId = 'cell_${row + 1}_${col + 1}'; // Fixed NFC tag per cell
+      }
+    }
+  }
+
   @override
   String toString() {
     return 'GameGrid(${rows}x$columns, cellSize: ${cellSizeCm}cm)';
