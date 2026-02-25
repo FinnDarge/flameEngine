@@ -52,10 +52,10 @@ class GameState {
       localPlayer.inventory.addItem(item);
     }
     // Add some extra test items
-    localPlayer.inventory.addItem(SampleItems.fireStaff());
-    localPlayer.inventory.addItem(SampleItems.dragonScale());
-    localPlayer.inventory.addItem(SampleItems.elixir(quantity: 2));
-    localPlayer.inventory.addItem(SampleItems.strengthPotion(quantity: 3));
+    localPlayer.inventory.addItem(SampleItems.device());
+    localPlayer.inventory.addItem(SampleItems.oxygenTank());
+    localPlayer.inventory.addItem(SampleItems.medkit(quantity: 2));
+    localPlayer.inventory.addItem(SampleItems.radio());
   }
 
   /// Get character whose turn it is

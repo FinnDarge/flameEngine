@@ -74,6 +74,7 @@ flutter:
     - assets/images/tiles/spritesheet/
     - assets/images/characters/
     - assets/images/enemies/
+    - assets/images/inventory/
     - assets/audio/
 
   # An image asset can refer to one or more resolution-specific "variants", see

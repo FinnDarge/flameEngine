@@ -13,12 +13,16 @@ class DungeonGame extends FlameGame {
   
   // Track character sprite components
   final Map<Character, CharacterSpriteComponent> characterSprites = {};
-  final double cellSize = 100.0;
+  late final double cellSize;
 
   // Track last tapped NFC tag for movement flow
   String? lastTappedCharacterNfc;
 
   DungeonGame({int rows = 4, int columns = 4}) {
+    // Calculate cell size to make grid fill consistent space regardless of dimensions
+    // Target grid size of 400px, so cellSize = 400 / gridDimension
+    cellSize = 400.0 / rows.toDouble();
+    
     final grid = GameGrid(rows: rows, columns: columns);
     grid.initializeStaticGrid(); // Static grid - backend drives logic
 
@@ -221,7 +225,7 @@ class DungeonGame extends FlameGame {
     // Add sprite for local player's character if it exists and doesn't have a sprite
     final localCharacter = gameState.localPlayer.character;
     if (localCharacter != null && !characterSprites.containsKey(localCharacter)) {
-      print('📍 Adding missing sprite for ${localCharacter.name}');
+      print('📍 Adding sprite for ${localCharacter.name}');
       _addCharacterSprite(localCharacter);
     }
     
@@ -242,10 +246,6 @@ class DungeonGame extends FlameGame {
     if (gridComponent != null) {
       await gridComponent!.add(sprite);
       characterSprites[character] = sprite;
-      
-      print('✓ Added character sprite for ${character.name}');
-      print('  Grid position: (${character.position.x}, ${character.position.y})');
-      print('  Sprite position (relative to grid): (${sprite.position.x}, ${sprite.position.y})');
     } else {
       print('⚠ Cannot add character sprite - grid component not loaded');
     }

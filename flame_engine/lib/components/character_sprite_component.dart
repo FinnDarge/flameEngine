@@ -15,8 +15,7 @@ class CharacterSpriteComponent extends SpriteComponent {
           size: Vector2.all(cellSize * 0.8), // Character takes up 80% of tile
           priority: 10, // Characters render on top of tiles
         ) {
-    // Set position based on character's grid position (relative to grid)
-    updatePosition();
+    // Position will be set after loading is complete
   }
 
   @override
@@ -26,13 +25,13 @@ class CharacterSpriteComponent extends SpriteComponent {
     try {
       // Load character image
       final imagePath = character.characterClass.imagePath.replaceFirst('assets/images/', '');
-      print('🖼 Loading character image: $imagePath');
       final image = await Flame.images.load(imagePath);
       sprite = Sprite(image);
       
-      print('✓ Character sprite loaded: ${character.name}');
+      // Set position after sprite is fully loaded and mounted
+      updatePosition();
       
-      // Note: Position will be set by setGridOffset() after onLoad completes
+      print('✓ ${character.name} sprite loaded at grid position (${character.position.x}, ${character.position.y})');
     } catch (e) {
       print('⚠ Failed to load character image: $e');
     }

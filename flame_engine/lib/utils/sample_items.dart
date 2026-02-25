@@ -3,135 +3,117 @@ import '../models/inventory_item.dart';
 /// Sample items for testing the inventory system
 class SampleItems {
   // Weapons
-  static InventoryItem ironSword() => InventoryItem(
-        id: 'iron_sword',
-        name: 'Iron Sword',
-        description: 'A sturdy blade forged from iron. Good for beginners.',
+  static InventoryItem pistol() => InventoryItem(
+        id: 'pistol',
+        name: 'Pistol',
+        description: 'A reliable sidearm. Standard issue for field agents.',
         category: ItemCategory.equipment,
         equipmentType: EquipmentType.weapon,
-        statModifiers: {'attack': 2},
+        statModifiers: {'attack': 3},
+        iconPath: 'assets/images/inventory/Pistol.png',
       );
 
-  static InventoryItem steelAxe() => InventoryItem(
-        id: 'steel_axe',
-        name: 'Steel Axe',
-        description: 'A heavy axe that deals devastating blows.',
+  static InventoryItem tacticalGlove() => InventoryItem(
+        id: 'tactical_glove',
+        name: 'Tactical Glove',
+        description: 'Enhanced combat gloves with reinforced knuckles.',
         category: ItemCategory.equipment,
         equipmentType: EquipmentType.weapon,
-        statModifiers: {'attack': 4, 'defense': -1},
-      );
-
-  static InventoryItem fireStaff() => InventoryItem(
-        id: 'fire_staff',
-        name: 'Staff of Flames',
-        description: 'A magical staff imbued with the power of fire.',
-        category: ItemCategory.equipment,
-        equipmentType: EquipmentType.weapon,
-        statModifiers: {'attack': 5, 'maxHealth': 2},
-      );
-
-  static InventoryItem legendaryBlade() => InventoryItem(
-        id: 'legendary_blade',
-        name: 'Excalibur',
-        description: 'The legendary sword of kings. Its power is unmatched.',
-        category: ItemCategory.equipment,
-        equipmentType: EquipmentType.weapon,
-        statModifiers: {'attack': 10, 'defense': 3, 'maxHealth': 5},
+        statModifiers: {'attack': 2, 'defense': 1},
+        iconPath: 'assets/images/inventory/Glove.png',
       );
 
   // Armor
-  static InventoryItem leatherArmor() => InventoryItem(
-        id: 'leather_armor',
-        name: 'Leather Armor',
-        description: 'Light armor that provides basic protection.',
+  static InventoryItem helmet() => InventoryItem(
+        id: 'helmet',
+        name: 'Combat Helmet',
+        description: 'Protects your head from environmental hazards and attacks.',
         category: ItemCategory.equipment,
         equipmentType: EquipmentType.armor,
-        statModifiers: {'defense': 2},
+        statModifiers: {'defense': 3},
+        iconPath: 'assets/images/inventory/Helmet.png',
       );
 
-  static InventoryItem steelPlate() => InventoryItem(
-        id: 'steel_plate',
-        name: 'Steel Plate Armor',
-        description: 'Heavy armor that offers excellent protection.',
+  static InventoryItem oxygenTank() => InventoryItem(
+        id: 'oxygen_tank',
+        name: 'Oxygen Tank',
+        description: 'Heavy protective vest with integrated life support.',
         category: ItemCategory.equipment,
         equipmentType: EquipmentType.armor,
-        statModifiers: {'defense': 5, 'maxHealth': 3},
-      );
-
-  static InventoryItem dragonScale() => InventoryItem(
-        id: 'dragon_scale_armor',
-        name: 'Dragon Scale Armor',
-        description: 'Armor crafted from the scales of a mighty dragon.',
-        category: ItemCategory.equipment,
-        equipmentType: EquipmentType.armor,
-        statModifiers: {'defense': 7, 'maxHealth': 5, 'attack': 2},
+        statModifiers: {'defense': 5, 'maxHealth': 5},
+        iconPath: 'assets/images/inventory/Tank.png',
       );
 
   // Consumables
-  static InventoryItem healthPotion({int quantity = 1}) => InventoryItem(
-        id: 'health_potion',
-        name: 'Health Potion',
-        description: 'Restores 20 health points when used.',
+  static InventoryItem food({int quantity = 1}) => InventoryItem(
+        id: 'food',
+        name: 'Ration Pack',
+        description: 'Emergency food ration. Restores 20 health points.',
+        category: ItemCategory.consumable,
+        quantity: quantity,
+        iconPath: 'assets/images/inventory/Food.png',
+      );
+
+  static InventoryItem medkit({int quantity = 1}) => InventoryItem(
+        id: 'medkit',
+        name: 'Medical Kit',
+        description: 'Advanced medical supplies. Restores 50 health points.',
         category: ItemCategory.consumable,
         quantity: quantity,
       );
 
-  static InventoryItem manaPotion({int quantity = 1}) => InventoryItem(
-        id: 'mana_potion',
-        name: 'Mana Potion',
-        description: 'Restores 30 mana points when used.',
-        category: ItemCategory.consumable,
-        quantity: quantity,
+  // Utility Items (Equipment that don't fit weapon/armor)
+  static InventoryItem flashlight() => InventoryItem(
+        id: 'flashlight',
+        name: 'Tactical Flashlight',
+        description: 'Illuminates dark areas and reveals hidden objects.',
+        category: ItemCategory.equipment,
+        equipmentType: EquipmentType.weapon, // Counts as utility weapon
+        statModifiers: {'attack': 1},
+        iconPath: 'assets/images/inventory/Flashlight.png',
       );
 
-  static InventoryItem elixir({int quantity = 1}) => InventoryItem(
-        id: 'elixir',
-        name: 'Grand Elixir',
-        description: 'Fully restores health and mana when used.',
-        category: ItemCategory.consumable,
-        quantity: quantity,
+  static InventoryItem radio() => InventoryItem(
+        id: 'radio',
+        name: 'Comms Radio',
+        description: 'Communication device that boosts team coordination.',
+        category: ItemCategory.equipment,
+        equipmentType: EquipmentType.armor, // Counts as utility armor
+        statModifiers: {'defense': 2, 'maxHealth': 2},
+        iconPath: 'assets/images/inventory/Radio.png',
       );
 
-  static InventoryItem strengthPotion({int quantity = 1}) => InventoryItem(
-        id: 'strength_potion',
-        name: 'Strength Potion',
-        description: 'Temporarily increases attack power.',
-        category: ItemCategory.consumable,
-        quantity: quantity,
-      );
-
-  static InventoryItem defensePotion({int quantity = 1}) => InventoryItem(
-        id: 'defense_potion',
-        name: 'Defense Potion',
-        description: 'Temporarily increases defense.',
-        category: ItemCategory.consumable,
-        quantity: quantity,
+  static InventoryItem device() => InventoryItem(
+        id: 'device',
+        name: 'Multi-Tool Device',
+        description: 'Versatile electronic device with multiple functions.',
+        category: ItemCategory.equipment,
+        equipmentType: EquipmentType.weapon,
+        statModifiers: {'attack': 4, 'maxHealth': 3},
+        iconPath: 'assets/images/inventory/Device.png',
       );
 
   /// Get a starter inventory for new players
   static List<InventoryItem> getStarterItems() {
     return [
-      ironSword(),
-      leatherArmor(),
-      healthPotion(quantity: 3),
-      manaPotion(quantity: 2),
+      pistol(),
+      helmet(),
+      food(quantity: 3),
     ];
   }
 
   /// Get a random item for loot drops
   static InventoryItem getRandomItem() {
     final items = [
-      ironSword(),
-      steelAxe(),
-      fireStaff(),
-      leatherArmor(),
-      steelPlate(),
-      dragonScale(),
-      healthPotion(),
-      manaPotion(),
-      elixir(),
-      strengthPotion(),
-      defensePotion(),
+      pistol(),
+      tacticalGlove(),
+      helmet(),
+      oxygenTank(),
+      flashlight(),
+      radio(),
+      device(),
+      food(),
+      medkit(),
     ];
     items.shuffle();
     return items.first;
@@ -140,18 +122,15 @@ class SampleItems {
   /// Get all available items
   static List<InventoryItem> getAllItems() {
     return [
-      ironSword(),
-      steelAxe(),
-      fireStaff(),
-      legendaryBlade(),
-      leatherArmor(),
-      steelPlate(),
-      dragonScale(),
-      healthPotion(quantity: 5),
-      manaPotion(quantity: 5),
-      elixir(quantity: 2),
-      strengthPotion(quantity: 3),
-      defensePotion(quantity: 3),
+      pistol(),
+      tacticalGlove(),
+      helmet(),
+      oxygenTank(),
+      flashlight(),
+      radio(),
+      device(),
+      food(quantity: 5),
+      medkit(quantity: 3),
     ];
   }
 }
