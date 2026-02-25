@@ -6,6 +6,7 @@ import '../models/game_state.dart';
 import '../services/nfc_service.dart';
 import '../models/dungeon_game.dart';
 import '../widgets/token_and_board_app_bar.dart';
+import '../widgets/inventory_overlay.dart';
 
 /// Gameplay screen for the actual game
 class GameplayScreen extends StatefulWidget {
@@ -31,6 +32,7 @@ class GameplayScreen extends StatefulWidget {
 class _GameplayScreenState extends State<GameplayScreen> {
   bool nfcAvailable = false;
   String nfcStatus = 'Initialising NFC...';
+  bool showInventory = false;
 
   @override
   void initState() {
@@ -167,8 +169,8 @@ class _GameplayScreenState extends State<GameplayScreen> {
           Expanded(
             child: Text(
               isYourTurn
-                  ? 'YOUR TURN - Tap ${localCharacter?.name}, then tap destination'
-                  : 'Current turn: ${currentCharacter?.name ?? "Unknown"}',
+                  ? 'YOUR TURN - Tap ${localCharacter?.name ?? "your character"}, then tap destination'
+                  : 'Current turn: ${currentCharacter?.name ?? "Waiting for players..."}',
               style: TextStyle(
                 color: isYourTurn ? Colors.green : Colors.white70,
                 fontWeight: isYourTurn ? FontWeight.bold : FontWeight.normal,
@@ -235,10 +237,60 @@ class _GameplayScreenState extends State<GameplayScreen> {
                     left: 12,
                     child: _buildCharacterPortrait(player.character!),
                   ),
+                // Inventory overlay
+                if (showInventory)
+                  InventoryOverlay(
+                    inventory: player.inventory,
+                    onClose: () {
+                      setState(() {
+                        showInventory = false;
+                      });
+                    },
+                  ),
               ],
             ),
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          setState(() {
+            showInventory = !showInventory;
+          });
+        },
+        backgroundColor: Colors.red,
+        foregroundColor: Colors.white,
+        icon: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            const Icon(Icons.inventory, size: 28),
+            if (player.inventory.usedSlots > 0)
+              Positioned(
+                top: -8,
+                right: -8,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.yellow,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.black, width: 2),
+                  ),
+                  constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
+                  child: Center(
+                    child: Text(
+                      '${player.inventory.usedSlots}',
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+        label: const Text('INVENTORY'),
       ),
     );
   }

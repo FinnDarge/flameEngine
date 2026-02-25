@@ -5,6 +5,7 @@ import 'game_grid.dart';
 import 'tile_type.dart';
 import 'game_scenario.dart';
 import '../services/management_api_service.dart' show ApiPlayer, ApiBoard;
+import '../utils/sample_items.dart';
 
 /// Manages the overall game state
 class GameState {
@@ -45,6 +46,16 @@ class GameState {
     // (4,4) in 1-indexed = (3,3) in 0-indexed
     // Create local player with unique ID
     localPlayer = Player(id: DateTime.now().millisecondsSinceEpoch.toString());
+    
+    // Add debug starter items for testing inventory
+    for (var item in SampleItems.getStarterItems()) {
+      localPlayer.inventory.addItem(item);
+    }
+    // Add some extra test items
+    localPlayer.inventory.addItem(SampleItems.fireStaff());
+    localPlayer.inventory.addItem(SampleItems.dragonScale());
+    localPlayer.inventory.addItem(SampleItems.elixir(quantity: 2));
+    localPlayer.inventory.addItem(SampleItems.strengthPotion(quantity: 3));
   }
 
   /// Get character whose turn it is

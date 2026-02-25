@@ -1,4 +1,5 @@
 import 'character.dart';
+import 'inventory.dart';
 
 /// Represents a player in the game (person with a phone)
 class Player {
@@ -10,6 +11,9 @@ class Player {
   
   /// Character this player controls (null until claimed)
   Character? character;
+
+  /// Player's inventory system
+  final Inventory inventory;
   
   /// Has this player completed character selection?
   bool get hasCharacter => character != null;
@@ -18,7 +22,8 @@ class Player {
     required this.id,
     this.name,
     this.character,
-  });
+    Inventory? inventory,
+  }) : inventory = inventory ?? Inventory();
 
   /// Claim a character
   void claimCharacter(Character char) {
