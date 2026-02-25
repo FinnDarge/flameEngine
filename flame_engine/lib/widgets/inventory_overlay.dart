@@ -35,9 +35,16 @@ class _InventoryOverlayState extends State<InventoryOverlay> {
               color: const Color(0xFF1a1a1a),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: Colors.amber.withOpacity(0.5),
+                color: const Color(0xFF00d9ff).withValues(alpha: 0.5),
                 width: 2,
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF00d9ff).withValues(alpha: 0.2),
+                  blurRadius: 20,
+                  spreadRadius: 2,
+                ),
+              ],
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -45,6 +52,7 @@ class _InventoryOverlayState extends State<InventoryOverlay> {
                 _buildHeader(),
                 Flexible(
                   child: SingleChildScrollView(
+                    padding: const EdgeInsets.only(bottom: 80), // Prevent floating button overlap
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -75,15 +83,16 @@ class _InventoryOverlayState extends State<InventoryOverlay> {
       ),
       child: Row(
         children: [
-          const Icon(Icons.backpack, color: Colors.amber, size: 24),
+          const Icon(Icons.inventory_2, color: Color(0xFF00d9ff), size: 24),
           const SizedBox(width: 8),
           const Flexible(
             child: Text(
-              'Inventory',
+              'INVENTORY',
               style: TextStyle(
-                color: Colors.white,
+                color: Color(0xFF00d9ff),
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
+                letterSpacing: 1.2,
               ),
               overflow: TextOverflow.ellipsis,
             ),
@@ -143,9 +152,10 @@ class _InventoryOverlayState extends State<InventoryOverlay> {
           const Text(
             'Character Stats',
             style: TextStyle(
-              color: Colors.amber,
+              color: Color(0xFF00d9ff),
               fontSize: 14,
               fontWeight: FontWeight.bold,
+              letterSpacing: 1.1,
             ),
           ),
           const SizedBox(height: 8),
@@ -164,7 +174,7 @@ class _InventoryOverlayState extends State<InventoryOverlay> {
               const SizedBox(width: 8),
               Expanded(
                 child: _buildStatBox(
-                  icon: Icons.sports_martial_arts,
+                  icon: Icons.flash_on,
                   iconColor: Colors.orange,
                   label: 'Attack',
                   base: character.attack,
@@ -263,7 +273,7 @@ class _InventoryOverlayState extends State<InventoryOverlay> {
             Text(
               '= $total',
               style: const TextStyle(
-                color: Colors.amber,
+                color: Color(0xFF00d9ff),
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
               ),
@@ -282,9 +292,10 @@ class _InventoryOverlayState extends State<InventoryOverlay> {
           const Text(
             'Equipment',
             style: TextStyle(
-              color: Colors.amber,
+              color: Color(0xFF00d9ff),
               fontSize: 16,
               fontWeight: FontWeight.bold,
+              letterSpacing: 1.1,
             ),
           ),
           const SizedBox(height: 12),
@@ -336,7 +347,7 @@ class _InventoryOverlayState extends State<InventoryOverlay> {
               )
             else
               const Expanded(
-                child: Icon(Icons.sports_martial_arts, color: Colors.white24, size: 48),
+                child: Icon(Icons.flash_on, color: Colors.white24, size: 48),
               ),
             Container(
               padding: const EdgeInsets.symmetric(vertical: 6),
@@ -462,13 +473,13 @@ class _InventoryOverlayState extends State<InventoryOverlay> {
         });
       },
       backgroundColor: const Color(0xFF2d2d2d),
-      selectedColor: Colors.amber.withOpacity(0.3),
+      selectedColor: const Color(0xFF00d9ff).withValues(alpha: 0.3),
       labelStyle: TextStyle(
-        color: isSelected ? Colors.amber : Colors.white70,
+        color: isSelected ? const Color(0xFF00d9ff) : Colors.white70,
         fontSize: 12,
       ),
       side: BorderSide(
-        color: isSelected ? Colors.amber : Colors.white24,
+        color: isSelected ? const Color(0xFF00d9ff) : Colors.white24,
       ),
     );
   }
@@ -530,8 +541,8 @@ class _InventoryOverlayState extends State<InventoryOverlay> {
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: isSelected
-                ? Colors.amber
-                : Color(item.categoryColor).withOpacity(0.5),
+                ? const Color(0xFF00d9ff)
+                : Color(item.categoryColor).withValues(alpha: 0.5),
             width: isSelected ? 3 : 2,
           ),
         ),
@@ -594,7 +605,7 @@ class _InventoryOverlayState extends State<InventoryOverlay> {
     if (item.isEquipment) {
       switch (item.equipmentType!) {
         case EquipmentType.weapon:
-          icon = Icons.sports_martial_arts;
+          icon = Icons.flash_on;
           break;
         case EquipmentType.armor:
           icon = Icons.shield;

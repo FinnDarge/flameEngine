@@ -286,29 +286,51 @@ class _GameplayScreenState extends State<GameplayScreen> {
             showInventory = !showInventory;
           });
         },
-        backgroundColor: Colors.red,
-        foregroundColor: Colors.white,
+        backgroundColor: const Color(0xFF1a2332),
+        foregroundColor: const Color(0xFF00d9ff),
+        elevation: 8,
         icon: Stack(
           clipBehavior: Clip.none,
           children: [
-            const Icon(Icons.inventory, size: 28),
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: const Color(0xFF00d9ff).withValues(alpha: 0.5),
+                  width: 2,
+                ),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.inventory_2_outlined, size: 24),
+            ),
             if (player.inventory.usedSlots > 0)
               Positioned(
-                top: -8,
-                right: -8,
+                top: -6,
+                right: -6,
                 child: Container(
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
-                    color: Colors.yellow,
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF00d9ff), Color(0xFF0088cc)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
                     shape: BoxShape.circle,
-                    border: Border.all(color: Colors.black, width: 2),
+                    border: Border.all(color: const Color(0xFF1a2332), width: 2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF00d9ff).withValues(alpha: 0.5),
+                        blurRadius: 4,
+                        spreadRadius: 1,
+                      ),
+                    ],
                   ),
                   constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
                   child: Center(
                     child: Text(
                       '${player.inventory.usedSlots}',
                       style: const TextStyle(
-                        color: Colors.black,
+                        color: Color(0xFF1a2332),
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
                       ),
@@ -318,7 +340,13 @@ class _GameplayScreenState extends State<GameplayScreen> {
               ),
           ],
         ),
-        label: const Text('INVENTORY'),
+        label: const Text(
+          'INVENTORY',
+          style: TextStyle(
+            letterSpacing: 1.2,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
     );
   }

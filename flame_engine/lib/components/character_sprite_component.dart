@@ -74,6 +74,15 @@ class CharacterSpriteComponent extends PositionComponent {
         position: Vector2(spriteSize / 2, 0), // At the top
       );
       
+      // Background for health text (semi-transparent)
+      final healthBg = RectangleComponent(
+        size: Vector2(spriteSize * 0.6, 14), // Slightly wider than text
+        paint: Paint()..color = Colors.black.withValues(alpha: 0.6),
+        anchor: Anchor.topCenter,
+        position: Vector2(spriteSize / 2, -1), // Just above health text
+      );
+      
+      await add(healthBg);
       await add(_sprite);
       await add(_nameText);
       await add(_healthText);
