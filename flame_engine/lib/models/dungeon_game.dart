@@ -3,6 +3,7 @@ import 'package:flame/flame.dart';
 import 'game_grid.dart';
 import 'game_state.dart';
 import 'character.dart';
+import 'tile_event.dart';
 import '../components/grid_component.dart';
 import '../components/character_sprite_component.dart';
 
@@ -25,6 +26,16 @@ class DungeonGame extends FlameGame {
     
     final grid = GameGrid(rows: rows, columns: columns);
     grid.initializeStaticGrid(); // Static grid - backend drives logic
+
+    // Add test event to demonstrate fog of war system
+    if (rows >= 2 && columns >= 2) {
+      grid.tiles[1][1].event = TileEvent(
+        id: 'demo_loot',
+        type: TileEventType.loot,
+        description: 'Supply cache - demo event',
+        isRevealed: true,
+      );
+    }
 
     gameState = GameState(grid: grid);
   }
@@ -253,6 +264,44 @@ class DungeonGame extends FlameGame {
     final sprite = characterSprites[character];
     if (sprite != null) {
       sprite.updatePosition();
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Backend Integration Helpers
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// Reveal a tile (called when backend reveals fog of war)
+  void revealTile(int row, int col) {
+    final tile = gameState.grid.getTile(row, col);
+    if (tile != null && !tile.isRevealed) {
+      tile.isRevealed = true;
+      gridComponent?.updateTile(row, col);
+    }
+  }
+
+  /// Reveal multiple tiles at once
+  void revealTiles(List<Vector2> positions) {
+    for (final pos in positions) {
+      revealTile(pos.y.toInt(), pos.x.toInt());
+    }
+  }
+
+  /// Add or update an event on a tile (from backend)
+  void setTileEvent(int row, int col, TileEvent? event) {
+    final tile = gameState.grid.getTile(row, col);
+    if (tile != null) {
+      tile.event = event;
+      gridComponent?.updateTile(row, col);
+    }
+  }
+
+  /// Complete an event (mark as done)
+  void completeEvent(int row, int col) {
+    final tile = gameState.grid.getTile(row, col);
+    if (tile?.event != null) {
+      tile!.event = tile.event!.copyWith(isCompleted: true);
+      gridComponent?.updateTile(row, col);
     }
   }
 }
