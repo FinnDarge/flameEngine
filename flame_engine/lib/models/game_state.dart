@@ -225,11 +225,6 @@ class GameState {
       }
       startTile.hasPlayer = true;
     }
-
-    print('🎮 Game started! ${characters.length} players');
-    print(
-      'Goal: Reach (${goalPosition.x.toInt() + 1}, ${goalPosition.y.toInt() + 1})',
-    );
   }
 
   /// Check victory condition

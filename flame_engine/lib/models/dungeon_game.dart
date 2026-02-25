@@ -27,7 +27,6 @@ class DungeonGame extends FlameGame {
     grid.initializeStaticGrid(); // Static grid - backend drives logic
 
     gameState = GameState(grid: grid);
-    print('✓ DungeonGame created - Phase: ${gameState.phase.name}');
   }
 
   @override
@@ -35,18 +34,12 @@ class DungeonGame extends FlameGame {
     await super.onLoad();
 
     // Preload tile images to catch any loading errors early
-    print('🖼 Preloading tile images...');
     try {
       await Flame.images.load('tiles/Stone2.jpg');
       await Flame.images.load('tiles/StoneCorner1.jpg');
       await Flame.images.load('tiles/StoneCorner2.jpg');
-      print('✓ Tile images preloaded successfully');
     } catch (e) {
       print('⚠ Error preloading tile images: $e');
-      print('  Check that assets/images/tiles/ contains:');
-      print('  - Stone2.jpg');
-      print('  - StoneCorner1.jpg');
-      print('  - StoneCorner2.jpg');
     }
 
     // Create visual grid component
@@ -56,7 +49,6 @@ class DungeonGame extends FlameGame {
     );
 
     await add(gridComponent!);
-    print('✓ Game loaded successfully');
   }
 
   @override
@@ -205,28 +197,31 @@ class DungeonGame extends FlameGame {
     gameState.currentTurnIndex = 0;
     gameState.turnNumber = 1;
     lastTappedCharacterNfc = null;
-
-    print('🔄 Game reset - Select your character!');
   }
 
   /// Start the game after character selection
-  void startGameplay() {
+  Future<void> startGameplay() async {
     gameState.startGame();
     gridComponent?.updateAllTiles();
     
-    // Ensure character sprites exist for all players
-    ensureCharacterSprites();
+    // Wait for the game to fully load (onLoad complete)
+    await loaded;
     
-    print('🎮 Game started with ${characterSprites.length} character(s)');
+    // Ensure character sprites exist for all players
+    await ensureCharacterSprites();
+    
+    // Update all character sprite positions to match their grid positions
+    for (final entry in characterSprites.entries) {
+      entry.value.updatePosition();
+    }
   }
   
   /// Ensure character sprites exist for all characters that have been claimed
-  void ensureCharacterSprites() {
+  Future<void> ensureCharacterSprites() async {
     // Add sprite for local player's character if it exists and doesn't have a sprite
     final localCharacter = gameState.localPlayer.character;
     if (localCharacter != null && !characterSprites.containsKey(localCharacter)) {
-      print('📍 Adding sprite for ${localCharacter.name}');
-      _addCharacterSprite(localCharacter);
+      await _addCharacterSprite(localCharacter);
     }
     
     // TODO: Add sprites for other players' characters when multiplayer is implemented
@@ -237,18 +232,20 @@ class DungeonGame extends FlameGame {
     // Don't add if already exists
     if (characterSprites.containsKey(character)) return;
     
+    // Wait for grid component to be fully loaded
+    if (gridComponent == null) return;
+    
+    // Wait for grid to finish loading (tile images, etc.)
+    await gridComponent!.loaded;
+    
     final sprite = CharacterSpriteComponent(
       character: character,
       cellSize: cellSize,
     );
     
     // Add sprite as a child of the grid component so it moves with the grid
-    if (gridComponent != null) {
-      await gridComponent!.add(sprite);
-      characterSprites[character] = sprite;
-    } else {
-      print('⚠ Cannot add character sprite - grid component not loaded');
-    }
+    await gridComponent!.add(sprite);
+    characterSprites[character] = sprite;
   }
   
   /// Update a character sprite's position

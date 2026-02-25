@@ -260,17 +260,11 @@ class _GameplayScreenState extends State<GameplayScreen> {
               ],
             ),
           ),
-          // Game widget with character portrait overlay
+          // Game widget
           Expanded(
             child: Stack(
               children: [
                 GameWidget(game: widget.game),
-                if (player.character != null)
-                  Positioned(
-                    top: 12,
-                    left: 12,
-                    child: _buildCharacterPortrait(player.character!),
-                  ),
                 // Inventory overlay
                 if (showInventory)
                   InventoryOverlay(

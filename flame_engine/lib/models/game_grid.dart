@@ -228,10 +228,6 @@ class GameGrid {
         tiles[row][col].nfcTagId = 'cell_${row + 1}_${col + 1}'; // Fixed NFC tag per cell
       }
     }
-
-    print('✓ Static grid initialized: ${rows}x$columns');
-    print('  - All tiles are walkable floors');
-    print('  - NFC tags assigned as cell_ROW_COL (1-indexed)');
   }
 
   @override

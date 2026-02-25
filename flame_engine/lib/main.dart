@@ -92,7 +92,6 @@ class _GameNavigatorState extends State<GameNavigator> {
     final scenario = game.gameState.selectedScenario;
     if (scenario != null) {
       final gridSize = scenario.gridSize;
-      print('🎮 Recreating game with ${gridSize}x$gridSize grid for scenario: ${scenario.name}');
       
       // Store old game state data that needs to persist
       final apiPlayers = game.gameState.apiPlayers;

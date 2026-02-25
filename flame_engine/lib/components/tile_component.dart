@@ -50,7 +50,6 @@ class TileComponent extends PositionComponent {
         imagePath = 'tiles/Stone2.jpg';
       }
       
-      print('🖼 Loading tile image: $imagePath');
       final image = await Flame.images.load(imagePath);
       sprite = SpriteComponent(
         sprite: Sprite(image),
@@ -59,7 +58,6 @@ class TileComponent extends PositionComponent {
       );
       add(sprite!);
       spriteLoaded = true;
-      print('✓ Tile image loaded successfully');
     } catch (e) {
       print('⚠ Failed to load tile image: $e');
       print('  Falling back to colored background');

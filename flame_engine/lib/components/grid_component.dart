@@ -59,8 +59,6 @@ class GridComponent extends PositionComponent {
       }
       tileComponents.add(rowComponents);
     }
-    
-    print('✓ Grid rendered: ${grid.rows}x${grid.columns} rooms (${size.x}x${size.y} pixels)');
   }
 
   /// Updates the visual representation of a specific tile
