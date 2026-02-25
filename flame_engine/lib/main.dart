@@ -27,7 +27,7 @@ class GameNavigator extends StatefulWidget {
 class _GameNavigatorState extends State<GameNavigator> {
   // Set to true to skip backend API calls and use hardcoded mock data.
   // Toggle back to false when the server is reachable again.
-  static const bool _kSkipApi = true;
+  static const bool _kSkipApi = false;
 
   late DungeonGame game;
   final NFCService nfcService = NFCService();
