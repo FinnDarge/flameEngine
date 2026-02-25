@@ -71,7 +71,7 @@ class _GameNavigatorState extends State<GameNavigator> {
   }
 
   void _onStartPlacementReady() {
-    game.gameState.phase = GamePhase.playing;
+    game.startGameplay(); // This sets phase to playing and ensures character sprites exist
     setState(() {});
   }
 

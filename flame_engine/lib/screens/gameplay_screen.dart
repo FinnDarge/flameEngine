@@ -94,6 +94,8 @@ class _GameplayScreenState extends State<GameplayScreen> {
   }
 
   Widget _buildCharacterPortrait(Character character) {
+    final player = widget.gameState.localPlayer;
+    
     return Container(
       width: 72,
       decoration: BoxDecoration(
@@ -127,16 +129,48 @@ class _GameplayScreenState extends State<GameplayScreen> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Text(
-              character.name,
-              style: TextStyle(
-                color: Color(character.color),
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-              ),
-              textAlign: TextAlign.center,
-              overflow: TextOverflow.ellipsis,
+            padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+            child: Column(
+              children: [
+                Text(
+                  character.name,
+                  style: TextStyle(
+                    color: Color(character.color),
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                // Health bar
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.favorite,
+                        color: Colors.red,
+                        size: 10,
+                      ),
+                      const SizedBox(width: 2),
+                      Text(
+                        '${character.health}/${player.effectiveMaxHealth}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -240,7 +274,7 @@ class _GameplayScreenState extends State<GameplayScreen> {
                 // Inventory overlay
                 if (showInventory)
                   InventoryOverlay(
-                    inventory: player.inventory,
+                    player: player,
                     onClose: () {
                       setState(() {
                         showInventory = false;

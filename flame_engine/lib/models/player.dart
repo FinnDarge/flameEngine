@@ -35,6 +35,27 @@ class Player {
     character = null;
   }
 
+  /// Get effective attack (base + equipment bonuses)
+  int get effectiveAttack {
+    if (character == null) return 0;
+    final bonus = inventory.getTotalStats()['attack'] ?? 0;
+    return character!.attack + bonus;
+  }
+
+  /// Get effective defense (base + equipment bonuses)
+  int get effectiveDefense {
+    if (character == null) return 0;
+    final bonus = inventory.getTotalStats()['defense'] ?? 0;
+    return character!.defense + bonus;
+  }
+
+  /// Get effective max health (base + equipment bonuses)
+  int get effectiveMaxHealth {
+    if (character == null) return 0;
+    final bonus = inventory.getTotalStats()['maxHealth'] ?? 0;
+    return character!.maxHealth + bonus;
+  }
+
   @override
   String toString() {
     final playerName = name ?? 'Player $id';

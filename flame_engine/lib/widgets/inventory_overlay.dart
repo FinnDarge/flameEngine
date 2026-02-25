@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
-import '../models/inventory.dart';
 import '../models/inventory_item.dart';
+import '../models/player.dart';
 
 /// Overlay widget that displays the player's inventory and equipment
 class InventoryOverlay extends StatefulWidget {
-  final Inventory inventory;
+  final Player player;
   final VoidCallback onClose;
 
   const InventoryOverlay({
     super.key,
-    required this.inventory,
+    required this.player,
     required this.onClose,
   });
 
@@ -92,18 +92,18 @@ class _InventoryOverlayState extends State<InventoryOverlay> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: widget.inventory.isFull 
+              color: widget.player.inventory.isFull 
                   ? Colors.red.withOpacity(0.3) 
                   : Colors.white10,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: widget.inventory.isFull ? Colors.red : Colors.white24,
+                color: widget.player.inventory.isFull ? Colors.red : Colors.white24,
               ),
             ),
             child: Text(
-              '${widget.inventory.usedSlots}/${widget.inventory.maxSlots}',
+              '${widget.player.inventory.usedSlots}/${widget.player.inventory.maxSlots}',
               style: TextStyle(
-                color: widget.inventory.isFull ? Colors.red : Colors.white70,
+                color: widget.player.inventory.isFull ? Colors.red : Colors.white70,
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
               ),
@@ -122,36 +122,153 @@ class _InventoryOverlayState extends State<InventoryOverlay> {
   }
 
   Widget _buildStats() {
-    final stats = widget.inventory.getTotalStats();
-    if (stats.isEmpty) {
+    final character = widget.player.character;
+    if (character == null) {
       return const SizedBox.shrink();
     }
 
+    final equipmentStats = widget.player.inventory.getTotalStats();
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Wrap(
-        spacing: 12,
-        runSpacing: 8,
-        children: stats.entries.map((entry) {
-          final isPositive = entry.value > 0;
-          return Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: isPositive
-                  ? Colors.green.withOpacity(0.2)
-                  : Colors.red.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(4),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF2d2d2d).withOpacity(0.5),
+        border: const Border(
+          bottom: BorderSide(color: Colors.white12, width: 1),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Character Stats',
+            style: TextStyle(
+              color: Colors.amber,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
             ),
-            child: Text(
-              '${entry.key}: ${isPositive ? "+" : ""}${entry.value}',
-              style: TextStyle(
-                color: isPositive ? Colors.green : Colors.red,
-                fontSize: 12,
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatBox(
+                  icon: Icons.favorite,
+                  iconColor: Colors.red,
+                  label: 'Health',
+                  base: character.health,
+                  max: character.maxHealth,
+                  bonus: equipmentStats['maxHealth'] ?? 0,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildStatBox(
+                  icon: Icons.sports_martial_arts,
+                  iconColor: Colors.orange,
+                  label: 'Attack',
+                  base: character.attack,
+                  bonus: equipmentStats['attack'] ?? 0,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildStatBox(
+                  icon: Icons.shield,
+                  iconColor: Colors.blue,
+                  label: 'Defense',
+                  base: character.defense,
+                  bonus: equipmentStats['defense'] ?? 0,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatBox({
+    required IconData icon,
+    required Color iconColor,
+    required String label,
+    required int base,
+    int? max,
+    required int bonus,
+  }) {
+    final total = base + bonus;
+    
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1a1a1a),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: Colors.white12),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: iconColor, size: 20),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 10,
+            ),
+          ),
+          const SizedBox(height: 2),
+          if (max != null)
+            RichText(
+              text: TextSpan(
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+                children: [
+                  TextSpan(
+                    text: '$base',
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                  TextSpan(
+                    text: '/${max + bonus}',
+                    style: const TextStyle(color: Colors.white70),
+                  ),
+                ],
+              ),
+            )
+          else
+            RichText(
+              text: TextSpan(
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+                children: [
+                  TextSpan(
+                    text: '$base',
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                  if (bonus != 0)
+                    TextSpan(
+                      text: bonus > 0 ? ' +$bonus' : ' $bonus',
+                      style: TextStyle(
+                        color: bonus > 0 ? Colors.green : Colors.red,
+                        fontSize: 12,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          if (bonus != 0 && max == null)
+            Text(
+              '= $total',
+              style: const TextStyle(
+                color: Colors.amber,
+                fontSize: 11,
                 fontWeight: FontWeight.bold,
               ),
             ),
-          );
-        }).toList(),
+        ],
       ),
     );
   }
@@ -184,13 +301,13 @@ class _InventoryOverlayState extends State<InventoryOverlay> {
   }
 
   Widget _buildWeaponSlot() {
-    final item = widget.inventory.equippedWeapon;
+    final item = widget.player.inventory.equippedWeapon;
 
     return GestureDetector(
       onTap: item != null
           ? () {
               setState(() {
-                widget.inventory.unequipWeapon();
+                widget.player.inventory.unequipWeapon();
                 selectedItem = null;
               });
             }
@@ -246,13 +363,13 @@ class _InventoryOverlayState extends State<InventoryOverlay> {
   }
 
   Widget _buildArmorSlot() {
-    final item = widget.inventory.equippedArmor;
+    final item = widget.player.inventory.equippedArmor;
 
     return GestureDetector(
       onTap: item != null
           ? () {
               setState(() {
-                widget.inventory.unequipArmor();
+                widget.player.inventory.unequipArmor();
                 selectedItem = null;
               });
             }
@@ -357,7 +474,7 @@ class _InventoryOverlayState extends State<InventoryOverlay> {
   }
 
   Widget _buildInventoryGrid() {
-    var items = widget.inventory.items;
+    var items = widget.player.inventory.items;
 
     // Apply filter
     if (filterCategory != null) {
@@ -399,7 +516,7 @@ class _InventoryOverlayState extends State<InventoryOverlay> {
 
   Widget _buildInventoryItem(InventoryItem item) {
     final isSelected = selectedItem?.id == item.id;
-    final isEquipped = widget.inventory.isEquipped(item.id);
+    final isEquipped = widget.player.inventory.isEquipped(item.id);
 
     return GestureDetector(
       onTap: () {
@@ -535,11 +652,11 @@ class _InventoryOverlayState extends State<InventoryOverlay> {
                 ),
               ),
               // Equipment actions
-              if (item.isEquipment && !widget.inventory.isEquipped(item.id)) ...[
+              if (item.isEquipment && !widget.player.inventory.isEquipped(item.id)) ...[
                 ElevatedButton.icon(
                   onPressed: () {
                     setState(() {
-                      widget.inventory.equipItem(item);
+                      widget.player.inventory.equipItem(item);
                       selectedItem = null;
                     });
                   },
@@ -550,14 +667,14 @@ class _InventoryOverlayState extends State<InventoryOverlay> {
                     foregroundColor: Colors.green,
                   ),
                 ),
-              ] else if (widget.inventory.isEquipped(item.id)) ...[
+              ] else if (widget.player.inventory.isEquipped(item.id)) ...[
                 ElevatedButton.icon(
                   onPressed: () {
                     setState(() {
                       if (item.equipmentType == EquipmentType.weapon) {
-                        widget.inventory.unequipWeapon();
+                        widget.player.inventory.unequipWeapon();
                       } else {
-                        widget.inventory.unequipArmor();
+                        widget.player.inventory.unequipArmor();
                       }
                       selectedItem = null;
                     });
@@ -575,7 +692,7 @@ class _InventoryOverlayState extends State<InventoryOverlay> {
                 ElevatedButton.icon(
                   onPressed: () {
                     setState(() {
-                      widget.inventory.useConsumable(item.id);
+                      widget.player.inventory.useConsumable(item.id);
                       selectedItem = null;
                     });
                     // You can add visual feedback or effects here
