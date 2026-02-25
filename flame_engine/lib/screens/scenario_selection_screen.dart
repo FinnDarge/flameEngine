@@ -205,27 +205,6 @@ class _ScenarioSelectionScreenState extends State<ScenarioSelectionScreen> {
                                           ),
                                         ),
                                       ),
-                                      const SizedBox(width: 8),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 4,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: Colors.red.withOpacity(0.3),
-                                          borderRadius: BorderRadius.circular(
-                                            4,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          '${scenario.enemyCount} Enemies',
-                                          style: const TextStyle(
-                                            color: Colors.red,
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
                                     ],
                                   ),
                                 ],
