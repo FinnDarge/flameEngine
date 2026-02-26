@@ -17,6 +17,7 @@ class DungeonGame extends FlameGame {
   late GameState gameState;
   late final GameplayOrchestrator gameplayOrchestrator;
   GridComponent? gridComponent;
+  void Function(int row, int col, TileEvent event)? onPendingEventResolution;
 
   // Track character sprite components
   final Map<Character, CharacterSpriteComponent> characterSprites = {};
@@ -29,6 +30,8 @@ class DungeonGame extends FlameGame {
 
   // Timer for syncing remote player positions
   Timer? _remoteSyncTimer;
+  DateTime? _lastVirtualTapAt;
+  String? _lastVirtualTapId;
 
   DungeonGame({int rows = 4, int columns = 4}) {
     // Calculate cell size to make grid fill consistent space regardless of dimensions
@@ -53,6 +56,7 @@ class DungeonGame extends FlameGame {
       gameState: gameState,
       refreshBoardAfterMovement: refreshBoardAfterMovement,
       completeEvent: completeEvent,
+      promptEventResolution: _promptEventResolution,
     );
   }
 
@@ -73,6 +77,7 @@ class DungeonGame extends FlameGame {
     gridComponent = GridComponent(
       grid: gameState.grid,
       cellSize: cellSize,
+      onTileTapped: _handleVirtualTileTap,
     );
 
     await add(gridComponent!);
@@ -93,6 +98,27 @@ class DungeonGame extends FlameGame {
     _remoteSyncTimer?.cancel();
     _remoteSyncTimer = null;
     super.onRemove();
+  }
+
+
+  void _handleVirtualTileTap(int row, int col) {
+    final tileId = 'cell_${row + 1}_${col + 1}';
+    final now = DateTime.now();
+    final isDuplicateTap =
+        _lastVirtualTapId == tileId &&
+        _lastVirtualTapAt != null &&
+        now.difference(_lastVirtualTapAt!).inMilliseconds < 250;
+    if (isDuplicateTap) {
+      return;
+    }
+
+    _lastVirtualTapId = tileId;
+    _lastVirtualTapAt = now;
+    handleNFCTag(tileId, null, source: TileInputSource.mockTap);
+  }
+
+  void _promptEventResolution(int row, int col, TileEvent event) {
+    onPendingEventResolution?.call(row, col, event);
   }
 
   /// Handle NFC tag detection
@@ -151,6 +177,8 @@ class DungeonGame extends FlameGame {
 
       // Store session players in game state
       gameState.sessionPlayers = List.unmodifiable(sessionPlayers);
+
+      _ensureLocalCharacterFromSessionPlayers(sessionPlayers);
 
       print('✓ Loaded ${sessionPlayers.length} session player(s)');
 
@@ -215,6 +243,61 @@ class DungeonGame extends FlameGame {
     } catch (e) {
       print('⚠ Error loading session players: $e');
     }
+  }
+
+  void _ensureLocalCharacterFromSessionPlayers(
+    List<SessionPlayer> sessionPlayers,
+  ) {
+    if (gameState.localPlayer.character != null ||
+        gameState.localApiPlayer == null ||
+        gameState.gameStartPositions.isEmpty) {
+      return;
+    }
+
+    SessionPlayer? localAssignment;
+    for (final sessionPlayer in sessionPlayers) {
+      if (sessionPlayer.player == gameState.localApiPlayer!.uuid) {
+        localAssignment = sessionPlayer;
+        break;
+      }
+    }
+
+    if (localAssignment == null) {
+      print('ℹ No local role assignment found yet.');
+      return;
+    }
+
+    ApiGamePiece? localGamePiece;
+    for (final gamePiece in gameState.gameStartPositions) {
+      if (gamePiece.role == localAssignment.role) {
+        localGamePiece = gamePiece;
+        break;
+      }
+    }
+
+    final roleName = localGamePiece?.roleName;
+    if (roleName == null) {
+      print('⚠ Local role has no mapped roleName in game pieces.');
+      return;
+    }
+
+    final characterClass = gameState.mapApiNameToCharacterClass(roleName);
+    if (characterClass == null) {
+      print('⚠ Could not map roleName "$roleName" to a CharacterClass.');
+      return;
+    }
+    final character = Character(
+      characterClass: characterClass,
+      nfcTagId: characterClass.nfcTagId,
+      position: Vector2(0, 0),
+    );
+
+    gameState.localPlayer.claimCharacter(character);
+    if (!gameState.characters.contains(character)) {
+      gameState.addCharacter(character);
+    }
+
+    print('✓ Assigned local character from role: ${character.name}');
   }
 
   /// Assign an available unclaimed character class

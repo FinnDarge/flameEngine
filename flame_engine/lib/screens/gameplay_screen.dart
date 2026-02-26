@@ -9,6 +9,8 @@ import '../controllers/session_flow_controller.dart';
 import '../services/session_api_service.dart';
 import '../services/management_api_service.dart' show ApiPiece, ApiGamePiece;
 import '../models/dungeon_game.dart';
+import '../models/tile_event.dart';
+import 'event_resolution_screen.dart';
 import '../widgets/token_and_board_app_bar.dart';
 import '../widgets/inventory_overlay.dart';
 import '../widgets/session_info_footer.dart';
@@ -70,6 +72,9 @@ class _GameplayScreenState extends State<GameplayScreen> {
     _tileInputSubscription = widget.tileInputProvider.inputs.listen(
       _handleTileActivationInput,
     );
+    widget.game.onPendingEventResolution = (row, col, event) {
+      unawaited(_showEventResolutionSheet(row, col, event));
+    };
     _initNFC();
     // Start polling session state every 5 seconds
     _sessionPollTimer = Timer.periodic(const Duration(seconds: 5), (_) {
@@ -197,6 +202,40 @@ class _GameplayScreenState extends State<GameplayScreen> {
     });
   }
 
+  Future<void> _showEventResolutionSheet(
+    int row,
+    int col,
+    TileEvent event,
+  ) async {
+    if (!mounted) {
+      return;
+    }
+
+    await EventResolutionBottomSheet.show(
+      context,
+      viewModel: EventResolutionViewModel.fromTileEvent(event),
+      onChoiceSelected: (choiceId) async {
+        final tile = widget.gameState.grid.getTile(row, col);
+        final character = widget.gameState.localPlayer.character;
+        if (tile == null || character == null) {
+          return;
+        }
+
+        widget.game.gameplayOrchestrator.resolveEventChoice(
+          character: character,
+          tile: tile,
+          choiceId: choiceId,
+        );
+        widget.game.completeEvent(row, col);
+        widget.game.refreshBoardAfterMovement(character);
+
+        if (mounted) {
+          setState(() {});
+        }
+      },
+    );
+  }
+
   Future<void> _startNFCScanning() async {
     try {
       await widget.tileInputProvider.start();
@@ -219,6 +258,7 @@ class _GameplayScreenState extends State<GameplayScreen> {
 
   @override
   void dispose() {
+    widget.game.onPendingEventResolution = null;
     _tileInputSubscription?.cancel();
     unawaited(widget.tileInputProvider.stop());
     _sessionPollTimer?.cancel();
