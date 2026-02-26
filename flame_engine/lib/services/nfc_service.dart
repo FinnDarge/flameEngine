@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/services.dart';
 import 'package:nfc_manager/nfc_manager.dart';
 import 'mock_nfc_data.dart';
 
@@ -21,8 +22,19 @@ class NFCService {
       _isAvailable = true;
       return true;
     }
-    _isAvailable = await NfcManager.instance.isAvailable();
-    return _isAvailable;
+
+    try {
+      _isAvailable = await NfcManager.instance.isAvailable();
+      return _isAvailable;
+    } on MissingPluginException {
+      // Happens on platforms/builds where nfc_manager has no implementation
+      // (for example Flutter web). Treat as unavailable instead of crashing.
+      _isAvailable = false;
+      return false;
+    } catch (_) {
+      _isAvailable = false;
+      return false;
+    }
   }
 
   /// Start listening for NFC tags
@@ -45,16 +57,21 @@ class NFCService {
       return;
     }
 
-    await NfcManager.instance.startSession(
-      onDiscovered: (NfcTag tag) async {
-        // Extract tag ID and data
-        final tagId = _extractTagId(tag);
-        final tagData = _extractTagData(tag);
+    try {
+      await NfcManager.instance.startSession(
+        onDiscovered: (NfcTag tag) async {
+          // Extract tag ID and data
+          final tagId = _extractTagId(tag);
+          final tagData = _extractTagData(tag);
 
-        // Call the callback
-        onTagDiscovered(tagId, tagData);
-      },
-    );
+          // Call the callback
+          onTagDiscovered(tagId, tagData);
+        },
+      );
+    } on MissingPluginException {
+      _isScanning = false;
+      throw Exception('NFC plugin not available on this platform/build');
+    }
   }
 
   /// Simulate an NFC scan with a given tag ID (only works when kMockNfc is true).
@@ -70,7 +87,7 @@ class NFCService {
   Future<void> stopScanning() async {
     if (_isScanning) {
       if (!kMockNfc) {
-        await NfcManager.instance.stopSession();
+        await _safeStopSession();
       }
       _mockCallback = null;
       _isScanning = false;
@@ -142,33 +159,41 @@ class NFCService {
 
     final completer = Completer<bool>();
 
-    await NfcManager.instance.startSession(
-      onDiscovered: (NfcTag tag) async {
-        var ndef = Ndef.from(tag);
-        if (ndef == null || !ndef.isWritable) {
-          await NfcManager.instance.stopSession(
-            errorMessage: 'Tag is not writable',
-          );
-          completer.complete(false);
-          return;
-        }
+    try {
+      await NfcManager.instance.startSession(
+        onDiscovered: (NfcTag tag) async {
+          var ndef = Ndef.from(tag);
+          if (ndef == null || !ndef.isWritable) {
+            await _safeStopSession(errorMessage: 'Tag is not writable');
+            completer.complete(false);
+            return;
+          }
 
-        final ndefMessage = NdefMessage([NdefRecord.createText(message)]);
+          final ndefMessage = NdefMessage([NdefRecord.createText(message)]);
 
-        try {
-          await ndef.write(ndefMessage);
-          await NfcManager.instance.stopSession();
-          completer.complete(true);
-        } catch (e) {
-          await NfcManager.instance.stopSession(
-            errorMessage: 'Write failed: $e',
-          );
-          completer.complete(false);
-        }
-      },
-    );
+          try {
+            await ndef.write(ndefMessage);
+            await _safeStopSession();
+            completer.complete(true);
+          } catch (e) {
+            await _safeStopSession(errorMessage: 'Write failed: $e');
+            completer.complete(false);
+          }
+        },
+      );
+    } on MissingPluginException {
+      return false;
+    }
 
     return completer.future;
+  }
+
+  Future<void> _safeStopSession({String? errorMessage}) async {
+    try {
+      await NfcManager.instance.stopSession(errorMessage: errorMessage);
+    } on MissingPluginException {
+      // Ignore when plugin is unavailable for this platform.
+    }
   }
 
   bool get isScanning => _isScanning;
