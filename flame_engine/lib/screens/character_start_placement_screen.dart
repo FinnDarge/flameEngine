@@ -4,7 +4,7 @@ import '../models/game_state.dart';
 import '../widgets/token_and_board_app_bar.dart';
 
 String _characterAsset(CharacterClass? cls) =>
-    cls?.imagePath ?? 'assets/images/characters/wizard.jpg';
+    cls?.imagePath ?? 'assets/images/characters/ControllerSingle.png';
 
 /// Combined screen that shows:
 ///   Step 1 — arrange the physical grid tiles

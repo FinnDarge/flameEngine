@@ -1,5 +1,44 @@
 import 'api_client.dart';
 
+/// A role available for a game (used when joining a session).
+class ApiRole {
+  final String uuid;
+  final String name;
+
+  const ApiRole({required this.uuid, required this.name});
+
+  factory ApiRole.fromJson(Map<String, dynamic> json) =>
+      ApiRole(uuid: json['uuid'] as String, name: json['name'] as String);
+
+  @override
+  String toString() => 'ApiRole($name)';
+}
+
+/// A player's assignment to a role in a session.
+class SessionPlayer {
+  final String uuid;
+  final String session;
+  final String player;
+  final String role;
+
+  const SessionPlayer({
+    required this.uuid,
+    required this.session,
+    required this.player,
+    required this.role,
+  });
+
+  factory SessionPlayer.fromJson(Map<String, dynamic> json) => SessionPlayer(
+    uuid: json['uuid'] as String,
+    session: json['session'] as String,
+    player: json['player'] as String,
+    role: json['role'] as String,
+  );
+
+  @override
+  String toString() => 'SessionPlayer(player: $player, role: $role)';
+}
+
 /// Typed result from creating a session.
 class CreatedSession {
   final String uuid;
@@ -55,6 +94,25 @@ class SessionApiService {
     return CreatedSession.fromJson(body!);
   }
 
+  /// Fetch all roles available for [gameUuid].
+  Future<List<ApiRole>> getRolesForGame(String gameUuid) async {
+    final list = await _client.getList('/roles', {'game': gameUuid});
+    return list.map(ApiRole.fromJson).toList();
+  }
+
+  /// Join an existing [sessionUuid] with the specified [roleUuid].
+  ///
+  /// The backend returns 204 on success.
+  Future<void> joinSession({
+    required String sessionUuid,
+    required String roleUuid,
+    required String userKey,
+  }) async {
+    await _client.userPost('/sessions/$sessionUuid/join', {
+      'role': roleUuid,
+    }, userKey);
+  }
+
   /// Look up a session by its 8-character [joinCode].
   ///
   /// The backend responds with a 302 redirect to `/sessions/{uuid}`; the
@@ -71,5 +129,11 @@ class SessionApiService {
   Future<SessionDetail> getSession(String sessionUuid) async {
     final body = await _client.getOne('/sessions/$sessionUuid');
     return SessionDetail.fromJson(body);
+  }
+
+  /// Get all players currently in a session with their assigned roles.
+  Future<List<SessionPlayer>> getSessionPlayers(String sessionUuid) async {
+    final list = await _client.getList('/sessions/$sessionUuid/join', {});
+    return list.map(SessionPlayer.fromJson).toList();
   }
 }

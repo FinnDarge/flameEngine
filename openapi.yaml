@@ -437,6 +437,20 @@ components:
           example: Piece moved successfully
       required: [message]
 
+    SessionPlayer:
+      type: object
+      description: A player's assignment to a role in a session.
+      properties:
+        uuid:
+          $ref: '#/components/schemas/UUID'
+        session:
+          $ref: '#/components/schemas/UUID'
+        player:
+          $ref: '#/components/schemas/UUID'
+        role:
+          $ref: '#/components/schemas/UUID'
+      required: [uuid, session, player, role]
+
 paths:
   # ─────────────────────────────────────────────────────────────────────────────
   # App
@@ -469,7 +483,7 @@ paths:
               type: string
               format: binary
       responses:
-        '204':
+        '200':
           description: APK uploaded successfully.
         '401':
           description: Unauthorized.
@@ -1294,9 +1308,29 @@ paths:
           $ref: '#/components/schemas/UUID'
         description: Session UUID.
 
+    get:
+      tags: [Sessions]
+      summary: Get session players
+      description: Returns the list of players currently in the session with their assigned roles.
+      responses:
+        '200':
+          description: Array of session players.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SessionPlayer'
+        '404':
+          description: Session not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
     post:
       tags: [Sessions]
-      summary: Join a session
+      summary: Add player to session
       description: >
         Adds the authenticated player to the session with the specified role.
         If all roles for the game are now filled, session pieces are

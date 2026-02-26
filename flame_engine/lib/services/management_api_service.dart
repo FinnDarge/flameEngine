@@ -25,12 +25,25 @@ class ApiBoard {
     required this.height,
   });
 
-  factory ApiBoard.fromJson(Map<String, dynamic> json) => ApiBoard(
-    uuid: json['uuid'] as String,
-    name: json['name'] as String,
-    width: (json['width'] as num).toInt(),
-    height: (json['height'] as num).toInt(),
-  );
+  factory ApiBoard.fromJson(Map<String, dynamic> json) {
+    final uuid = json['uuid'] as String?;
+    final name = json['name'] as String?;
+    final width = json['width'] as num?;
+    final height = json['height'] as num?;
+
+    if (uuid == null || name == null || width == null || height == null) {
+      throw FormatException(
+        'ApiBoard missing required fields: uuid=$uuid, name=$name, width=$width, height=$height',
+      );
+    }
+
+    return ApiBoard(
+      uuid: uuid,
+      name: name,
+      width: width.toInt(),
+      height: height.toInt(),
+    );
+  }
 
   @override
   String toString() => 'ApiBoard($name, ${width}x$height)';
@@ -41,7 +54,7 @@ class ApiPiece {
   /// UUID from the management system.
   final String uuid;
 
-  /// Display name, e.g. "Zauberer" or "Warrior".
+  /// Display name, e.g. "Controller" or "Engineer".
   final String name;
 
   /// Raw hex NFC ID as returned by the API (e.g. "010062f58cf253").
@@ -68,24 +81,34 @@ class ApiPiece {
   /// the piece name.
   String get characterClass {
     final lower = name.toLowerCase();
-    if (lower.contains('zauber') ||
-        lower.contains('wizard') ||
-        lower.contains('mage')) {
-      return 'wizard';
+    if (lower.contains('controller') || lower.contains('kontroll')) {
+      return 'controller';
     }
-    if (lower.contains('warrior') ||
-        lower.contains('krieger') ||
-        lower.contains('kämpfer')) {
-      return 'warrior';
+    if (lower.contains('engineer') || lower.contains('ingenieur')) {
+      return 'engineer';
+    }
+    if (lower.contains('striker') || lower.contains('schlag')) {
+      return 'striker';
+    }
+    if (lower.contains('vanguard') || lower.contains('vorhut')) {
+      return 'vanguard';
     }
     return lower;
   }
 
-  factory ApiPiece.fromJson(Map<String, dynamic> json) => ApiPiece(
-    uuid: json['uuid'] as String,
-    name: json['name'] as String,
-    nfcIdRaw: json['nfcId'] as String,
-  );
+  factory ApiPiece.fromJson(Map<String, dynamic> json) {
+    final uuid = json['uuid'] as String?;
+    final name = json['name'] as String?;
+    final nfcId = json['nfcId'] as String?;
+
+    if (uuid == null || name == null || nfcId == null) {
+      throw FormatException(
+        'ApiPiece missing required fields: uuid=$uuid, name=$name, nfcId=$nfcId',
+      );
+    }
+
+    return ApiPiece(uuid: uuid, name: name, nfcIdRaw: nfcId);
+  }
 
   /// Build the mock NFC payload map used by [NFCService.triggerMockScan].
   Map<String, dynamic> toMockPayload() => {
@@ -106,8 +129,18 @@ class ApiGame {
 
   const ApiGame({required this.uuid, required this.name});
 
-  factory ApiGame.fromJson(Map<String, dynamic> json) =>
-      ApiGame(uuid: json['uuid'] as String, name: json['name'] as String);
+  factory ApiGame.fromJson(Map<String, dynamic> json) {
+    final uuid = json['uuid'] as String?;
+    final name = json['name'] as String?;
+
+    if (uuid == null || name == null) {
+      throw FormatException(
+        'ApiGame missing required fields: uuid=$uuid, name=$name',
+      );
+    }
+
+    return ApiGame(uuid: uuid, name: name);
+  }
 
   @override
   String toString() => 'ApiGame($name)';
@@ -125,11 +158,19 @@ class ApiPlayer {
     required this.accessToken,
   });
 
-  factory ApiPlayer.fromJson(Map<String, dynamic> json) => ApiPlayer(
-    uuid: json['uuid'] as String,
-    name: json['name'] as String,
-    accessToken: json['accessToken'] as String,
-  );
+  factory ApiPlayer.fromJson(Map<String, dynamic> json) {
+    final uuid = json['uuid'] as String?;
+    final name = json['name'] as String?;
+    final accessToken = json['accessToken'] as String?;
+
+    if (uuid == null || name == null || accessToken == null) {
+      throw FormatException(
+        'ApiPlayer missing required fields: uuid=$uuid, name=$name, accessToken=$accessToken',
+      );
+    }
+
+    return ApiPlayer(uuid: uuid, name: name, accessToken: accessToken);
+  }
 
   @override
   String toString() => 'ApiPlayer($name)';

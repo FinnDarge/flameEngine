@@ -42,6 +42,8 @@ class _SessionSelectionScreenState extends State<SessionSelectionScreen> {
   bool _joining = false;
   String? _joinError;
   String? _joinedCode; // confirmation display
+  List<String> _joinedSessionClaimedRoleUuids =
+      []; // Roles claimed in joined session
 
   List<ApiPlayer> get _players => widget.gameState.apiPlayers;
 
@@ -70,6 +72,7 @@ class _SessionSelectionScreenState extends State<SessionSelectionScreen> {
   void _resetJoinState() => setState(() {
     _joinError = null;
     _joinedCode = null;
+    _joinedSessionClaimedRoleUuids = [];
   });
 
   // ── Create ────────────────────────────────────────────────────────────────
@@ -89,7 +92,8 @@ class _SessionSelectionScreenState extends State<SessionSelectionScreen> {
       widget.gameState
         ..sessionUuid = result.uuid
         ..sessionId = result.joinCode
-        ..localApiPlayer = _selectedPlayer;
+        ..localApiPlayer = _selectedPlayer
+        ..selectedApiGame = _selectedGame;
       setState(() {
         _createdJoinCode = result.joinCode;
         _creating = false;
@@ -102,7 +106,9 @@ class _SessionSelectionScreenState extends State<SessionSelectionScreen> {
     }
   }
 
-  void _confirmCreate() => widget.onSessionReady();
+  Future<void> _confirmCreate() async {
+    widget.onSessionReady();
+  }
 
   // ── Join ──────────────────────────────────────────────────────────────────
 
@@ -117,15 +123,32 @@ class _SessionSelectionScreenState extends State<SessionSelectionScreen> {
       _joining = true;
       _joinError = null;
       _joinedCode = null;
+      _joinedSessionClaimedRoleUuids = [];
     });
     try {
       final detail = await widget.sessionApi.getSessionByJoinCode(code);
+
+      // Find the game from the session's game UUID
+      final game =
+          widget.gameState.apiGames.firstWhere(
+                (g) => g.uuid == detail.game,
+                orElse: () => null as dynamic,
+              )
+              as ApiGame?;
+
       widget.gameState
         ..sessionUuid = detail.uuid
         ..sessionId = detail.joinCode
-        ..localApiPlayer = _selectedPlayer;
+        ..localApiPlayer = _selectedPlayer
+        ..selectedApiGame = game;
+
+      // Fetch the claimed roles for reference
+      final players = await widget.sessionApi.getSessionPlayers(detail.uuid);
+      final claimedUuids = players.map((p) => p.role).toList();
+
       setState(() {
         _joinedCode = detail.joinCode;
+        _joinedSessionClaimedRoleUuids = claimedUuids;
         _joining = false;
       });
     } catch (e) {
@@ -182,7 +205,7 @@ class _SessionSelectionScreenState extends State<SessionSelectionScreen> {
                 child: _players.isEmpty
                     ? _infoText('No players found. Check your API connection.')
                     : DropdownButtonFormField<ApiPlayer>(
-                        value: _selectedPlayer,
+                        initialValue: _selectedPlayer,
                         dropdownColor: const Color(0xFF2d2d2d),
                         style: const TextStyle(color: Colors.white),
                         decoration: _inputDecoration('Select player'),
@@ -221,7 +244,7 @@ class _SessionSelectionScreenState extends State<SessionSelectionScreen> {
                             'No games found. Check your API connection.',
                           )
                         : DropdownButtonFormField<ApiGame>(
-                            value: _selectedGame,
+                            initialValue: _selectedGame,
                             dropdownColor: const Color(0xFF2d2d2d),
                             style: const TextStyle(color: Colors.white),
                             decoration: _inputDecoration('Select game'),
@@ -240,13 +263,17 @@ class _SessionSelectionScreenState extends State<SessionSelectionScreen> {
                               });
                             },
                           ),
-                    if (_createError != null) ...[
+                    if (_createError != null && _createdJoinCode == null) ...[
                       const SizedBox(height: 8),
                       _errorText(_createError!),
                     ],
                     if (_createdJoinCode != null) ...[
                       const SizedBox(height: 12),
                       _JoinCodeDisplay(code: _createdJoinCode!),
+                      if (_createError != null) ...[
+                        const SizedBox(height: 8),
+                        _errorText(_createError!),
+                      ],
                       const SizedBox(height: 12),
                       _primaryButton(
                         label: 'Continue',
@@ -334,6 +361,51 @@ class _SessionSelectionScreenState extends State<SessionSelectionScreen> {
                         code: _joinedCode!,
                         label: 'Joined session:',
                       ),
+                      const SizedBox(height: 12),
+                      // Show session info with claimed roles count
+                      if (_joinedSessionClaimedRoleUuids.isNotEmpty)
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1a1a2e),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: Colors.amber.shade700,
+                              width: 1,
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.info_outline,
+                                    color: Colors.amber.shade300,
+                                    size: 16,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Already claimed roles:',
+                                    style: TextStyle(
+                                      color: Colors.amber.shade300,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                '${_joinedSessionClaimedRoleUuids.length} role(s) taken',
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.7),
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       const SizedBox(height: 12),
                       _primaryButton(
                         label: 'Continue',

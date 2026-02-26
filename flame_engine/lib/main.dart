@@ -194,6 +194,7 @@ class _GameNavigatorState extends State<GameNavigator> {
           return CharacterSelectionScreen(
             gameState: game.gameState,
             nfcService: nfcService,
+            sessionApi: _sessionApi,
             onCharacterSelected: _onCharacterSelectionComplete,
             onBack: _onCharacterSelectionBack,
           );

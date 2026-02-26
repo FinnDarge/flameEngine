@@ -120,8 +120,6 @@ class GameState {
     final lower = apiName.toLowerCase();
 
     // Direct class name matches
-    if (lower == 'warrior') return CharacterClass.warrior;
-    if (lower == 'wizard') return CharacterClass.wizard;
     if (lower == 'controller') return CharacterClass.controller;
     if (lower == 'engineer') return CharacterClass.engineer;
     if (lower == 'striker') return CharacterClass.striker;
@@ -135,9 +133,9 @@ class GameState {
     if (lower == 'green') return CharacterClass.striker;
     if (lower == 'orange') return CharacterClass.engineer;
 
-    // Fallback to warrior if unknown
-    print('⚠️ Unknown API character name: $apiName, defaulting to warrior');
-    return CharacterClass.warrior;
+    // Fallback to controller if unknown
+    print('⚠️ Unknown API character name: $apiName, defaulting to controller');
+    return CharacterClass.controller;
   }
 
   /// Claim a character for the local player

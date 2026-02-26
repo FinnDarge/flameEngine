@@ -1,11 +1,14 @@
 import 'package:flame/components.dart';
 import '../services/mock_nfc_data.dart'
-    show kWizardCharacterName, kWizardNfcTagId, kWizardUuid, 
-         kWarriorNfcTagId, kWarriorUuid,
-         kControllerNfcTagId, kControllerUuid,
-         kEngineerNfcTagId, kEngineerUuid,
-         kStrikerNfcTagId, kStrikerUuid,
-         kVanguardNfcTagId, kVanguardUuid;
+    show
+        kControllerNfcTagId,
+        kControllerUuid,
+        kEngineerNfcTagId,
+        kEngineerUuid,
+        kStrikerNfcTagId,
+        kStrikerUuid,
+        kVanguardNfcTagId,
+        kVanguardUuid;
 
 /// Represents a playable character in the game
 class Character {
@@ -90,8 +93,6 @@ class Character {
 
 /// Character classes/types
 enum CharacterClass {
-  warrior,
-  wizard,
   controller,
   engineer,
   striker,
@@ -99,10 +100,6 @@ enum CharacterClass {
 
   String get name {
     switch (this) {
-      case CharacterClass.warrior:
-        return 'Warrior';
-      case CharacterClass.wizard:
-        return kWizardCharacterName;
       case CharacterClass.controller:
         return 'Controller';
       case CharacterClass.engineer:
@@ -116,10 +113,6 @@ enum CharacterClass {
 
   int get color {
     switch (this) {
-      case CharacterClass.warrior:
-        return 0xFFFF4444; // Red
-      case CharacterClass.wizard:
-        return 0xFFAA44FF; // Purple
       case CharacterClass.controller:
         return 0xFF4444FF; // Blue
       case CharacterClass.engineer:
@@ -134,10 +127,6 @@ enum CharacterClass {
   /// Get NFC tag ID for this character class
   String get nfcTagId {
     switch (this) {
-      case CharacterClass.warrior:
-        return kWarriorNfcTagId;
-      case CharacterClass.wizard:
-        return kWizardNfcTagId;
       case CharacterClass.controller:
         return kControllerNfcTagId;
       case CharacterClass.engineer:
@@ -152,10 +141,6 @@ enum CharacterClass {
   /// Asset path for the character image
   String get imagePath {
     switch (this) {
-      case CharacterClass.warrior:
-        return 'assets/images/characters/warrior.jpg';
-      case CharacterClass.wizard:
-        return 'assets/images/characters/wizard.jpg';
       case CharacterClass.controller:
         return 'assets/images/characters/ControllerSingle.png';
       case CharacterClass.engineer:
@@ -170,10 +155,6 @@ enum CharacterClass {
   /// UUID for this character class (used for persistent identity)
   String? get uuid {
     switch (this) {
-      case CharacterClass.wizard:
-        return kWizardUuid;
-      case CharacterClass.warrior:
-        return kWarriorUuid;
       case CharacterClass.controller:
         return kControllerUuid;
       case CharacterClass.engineer:
@@ -188,10 +169,6 @@ enum CharacterClass {
   /// Base max health for this character class
   int get maxHealth {
     switch (this) {
-      case CharacterClass.wizard:
-        return 8;
-      case CharacterClass.warrior:
-        return 12;
       case CharacterClass.controller:
         return 10;
       case CharacterClass.engineer:
@@ -206,10 +183,6 @@ enum CharacterClass {
   /// Base attack for this character class
   int get attack {
     switch (this) {
-      case CharacterClass.wizard:
-        return 5;
-      case CharacterClass.warrior:
-        return 4;
       case CharacterClass.controller:
         return 2;
       case CharacterClass.engineer:
@@ -224,10 +197,6 @@ enum CharacterClass {
   /// Base defense for this character class
   int get defense {
     switch (this) {
-      case CharacterClass.wizard:
-        return 1;
-      case CharacterClass.warrior:
-        return 2;
       case CharacterClass.controller:
         return 4;
       case CharacterClass.engineer:
