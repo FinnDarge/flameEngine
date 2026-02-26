@@ -13,14 +13,6 @@
       "name": "Flutter (Real NFC)",
       "request": "launch",
       "type": "dart"
-    },
-    {
-      "name": "Flutter (Real API + Force Tag)",
-      "request": "launch",
-      "type": "dart",
-      "args": [
-        "--dart-define=FORCE_NFC_TAG_ID=53:F2:8C:F5:62:00:01"
-      ]
     }
   ]
 }

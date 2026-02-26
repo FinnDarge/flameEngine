@@ -5,12 +5,6 @@ import '../services/nfc_service.dart' show NFCService, kMockNfc;
 import '../services/mock_nfc_data.dart' show kMockNfcCharacterList, kVanguardNfcTagId;
 import '../widgets/token_and_board_app_bar.dart';
 
-/// Force all NFC scans to be treated as this tag ID (for testing with real API)
-/// Usage: flutter run --dart-define=FORCE_NFC_TAG_ID=53:F2:8C:F5:62:00:01
-const String? kForceNfcTagId = String.fromEnvironment('FORCE_NFC_TAG_ID') == ''
-    ? null 
-    : String.fromEnvironment('FORCE_NFC_TAG_ID');
-
 /// Character selection screen for claiming a character
 class CharacterSelectionScreen extends StatefulWidget {
   final GameState gameState;
@@ -70,10 +64,7 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
 
   void _startNFCScanning() {
     widget.nfcService.startScanning((tagId, data) {
-      // Override tag ID for testing with real API
-      final actualTagId = kForceNfcTagId ?? tagId;
-      
-      final name = _resolveCharacterName(actualTagId, data);
+      final name = _resolveCharacterName(tagId, data);
       // Release previous character so re-scanning updates the selection
       final prev = widget.gameState.localPlayer.character;
       if (prev != null) {
@@ -81,11 +72,10 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
         widget.gameState.localPlayer.releaseCharacter();
       }
       // Claim the character in game state so downstream screens can use it
-      widget.gameState.claimCharacter(actualTagId);
+      widget.gameState.claimCharacter(tagId);
       setState(() {
-        _scannedTagId = actualTagId;
-        final suffix = kForceNfcTagId != null ? ' (forced override)' : '';
-        nfcStatus = name != null ? 'Tag scanned: $name$suffix' : 'Tag scanned: $actualTagId$suffix';
+        _scannedTagId = tagId;
+        nfcStatus = name != null ? 'Tag scanned: $name' : 'Tag scanned: $tagId';
       });
     });
   }
