@@ -100,6 +100,10 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      FocusManager.instance.primaryFocus?.unfocus();
+    });
     _initNFC();
     _loadAvailableRoles();
     _startSessionPlayersRefreshTimer();
@@ -640,6 +644,8 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
                             return GestureDetector(
                               onTap: isSelectable
                                   ? () {
+                                      FocusManager.instance.primaryFocus
+                                          ?.unfocus();
                                       setState(() {
                                         _highlightedRoleUuid = roleUuid;
                                         _joinError = null;
