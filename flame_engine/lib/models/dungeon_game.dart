@@ -6,6 +6,7 @@ import 'character.dart';
 import 'tile_event.dart';
 import '../components/grid_component.dart';
 import '../components/character_sprite_component.dart';
+import '../services/management_api_service.dart';
 
 /// Main Flame game class
 class DungeonGame extends FlameGame {
@@ -14,10 +15,12 @@ class DungeonGame extends FlameGame {
   
   // Track character sprite components
   final Map<Character, CharacterSpriteComponent> characterSprites = {};
+  
+  // Track which characters are on which tiles (for sub-position assignment)
+  // Key: "row,col", Value: List of characters on that tile
+  final Map<String, List<Character>> _tilesOccupancy = {};
+  
   late final double cellSize;
-
-  // Track last tapped NFC tag for movement flow
-  String? lastTappedCharacterNfc;
 
   DungeonGame({int rows = 4, int columns = 4}) {
     // Calculate cell size to make grid fill consistent space regardless of dimensions
@@ -72,7 +75,7 @@ class DungeonGame extends FlameGame {
   }
 
   /// Handle NFC tag detection
-  void handleNFCTag(String tagId, Map<String, dynamic>? data) {
+  Future<void> handleNFCTag(String tagId, Map<String, dynamic>? data) async {
     print('📱 NFC Tag: $tagId');
 
     // Phase 1: Character Selection
@@ -83,7 +86,7 @@ class DungeonGame extends FlameGame {
 
     // Phase 2: Playing - Movement
     if (gameState.phase == GamePhase.playing) {
-      _handleMovement(tagId);
+      await _handleMovement(tagId);
       return;
     }
   }
@@ -100,26 +103,18 @@ class DungeonGame extends FlameGame {
   }
 
   /// Handle movement during gameplay
-  void _handleMovement(String tagId) {
-    // Check if it's a character NFC tag
-    final isCharacterTag = CharacterClass.values.any(
-      (c) => c.nfcTagId == tagId,
-    );
-
-    if (isCharacterTag) {
-      // Step 1: Player taps their character figure
-      _handleCharacterTap(tagId);
-    } else {
-      // Step 2: Player taps destination cell
-      _handleCellTap(tagId);
-    }
+  Future<void> _handleMovement(String tagId) async {
+    // During gameplay, any NFC tag that's NOT a character is assumed to be a field
+    // Player wants to move their assigned character to that field
+    await _handleFieldTap(tagId);
   }
 
-  /// Handle tapping a character figure
-  void _handleCharacterTap(String characterNfc) {
-    // Verify it's the local player's character
-    if (gameState.localPlayer.character?.nfcTagId != characterNfc) {
-      print('⚠ That\'s not your character!');
+  /// Handle tapping a field to move the player's character there
+  Future<void> _handleFieldTap(String cellNfc) async {
+    // Get player's assigned character
+    final character = gameState.localPlayer.character;
+    if (character == null) {
+      print('⚠ No character assigned to you!');
       return;
     }
 
@@ -131,24 +126,10 @@ class DungeonGame extends FlameGame {
       return;
     }
 
-    // Remember this tap
-    lastTappedCharacterNfc = characterNfc;
-    print('✓ Character selected. Now tap destination cell...');
-  }
-
-  /// Handle tapping a grid cell
-  void _handleCellTap(String cellNfc) {
-    // Must have tapped character first
-    if (lastTappedCharacterNfc == null) {
-      print('⚠ Tap your character figure first!');
-      return;
-    }
-
     // Parse cell NFC tag (format: cell_X_Y where X,Y are 1-indexed)
     final parts = cellNfc.split('_');
     if (parts.length != 3 || parts[0] != 'cell') {
-      print('⚠ Invalid cell NFC tag: $cellNfc');
-      lastTappedCharacterNfc = null;
+      print('⚠ Invalid field NFC tag: $cellNfc');
       return;
     }
 
@@ -157,13 +138,42 @@ class DungeonGame extends FlameGame {
       final col = int.parse(parts[2]) - 1;
       final destination = Vector2(col.toDouble(), row.toDouble());
 
-      // Attempt move
-      final character = gameState.localPlayer.character;
-      if (character == null) {
-        print('⚠ No character selected for this player!');
-        lastTappedCharacterNfc = null;
+      // Get destination tile
+      final tile = gameState.grid.getTile(row, col);
+      if (tile == null) {
+        print('⚠ Invalid tile position!');
         return;
       }
+
+      print('🎯 Attempting to move ${character.name} to field ($row, $col)...');
+
+      // Check if we have API session configured
+      if (gameState.sessionId != null && 
+          gameState.playerAccessToken != null && 
+          tile.fieldUuid != null) {
+        // API-driven movement
+        print('🌐 Submitting move to backend API...');
+        
+        final apiService = ManagementApiService();
+        final result = await apiService.walkMove(
+          sessionId: gameState.sessionId!,
+          targetFieldUuid: tile.fieldUuid!,
+          accessToken: gameState.playerAccessToken!,
+        );
+
+        if (result == null) {
+          print('❌ Move rejected by server!');
+          return;
+        }
+
+        print('✓ Move accepted by server!');
+        // Backend validated the move, update local state
+      } else {
+        // Local-only movement (no API session)
+        print('🎮 Local movement validation...');
+      }
+
+      // Attempt local move (either after API approval or local-only)
       final moved = gameState.moveCharacter(character, destination);
 
       if (moved) {
@@ -183,11 +193,8 @@ class DungeonGame extends FlameGame {
         }
       }
     } catch (e) {
-      print('⚠ Error parsing cell position: $e');
+      print('⚠ Error processing move: $e');
     }
-
-    // Reset for next move
-    lastTappedCharacterNfc = null;
   }
 
   /// Reset the game to initial state
@@ -207,7 +214,6 @@ class DungeonGame extends FlameGame {
     gameState.phase = GamePhase.characterSelection;
     gameState.currentTurnIndex = 0;
     gameState.turnNumber = 1;
-    lastTappedCharacterNfc = null;
   }
 
   /// Start the game after character selection
@@ -249,21 +255,107 @@ class DungeonGame extends FlameGame {
     // Wait for grid to finish loading (tile images, etc.)
     await gridComponent!.loaded;
     
+    // Determine sub-position based on how many characters are already on this tile
+    final subPos = _getNextAvailableSubPosition(character.position);
+    
     final sprite = CharacterSpriteComponent(
       character: character,
       cellSize: cellSize,
+      subPosition: subPos,
     );
     
     // Add sprite as a child of the grid component so it moves with the grid
     await gridComponent!.add(sprite);
     characterSprites[character] = sprite;
+    
+    // Track this character's position
+    _addCharacterToTile(character);
   }
   
   /// Update a character sprite's position
   void _updateCharacterSpritePosition(Character character) {
     final sprite = characterSprites[character];
     if (sprite != null) {
+      // Remove from old tile
+      _removeCharacterFromTile(character);
+      
+      // Reassign sub-positions for all characters on the new tile
+      _reassignSubPositionsForTile(character.position);
+      
+      // Add to new tile
+      _addCharacterToTile(character);
+      
       sprite.updatePosition();
+    }
+  }
+  
+  /// Get the tile key for tracking occupancy
+  String _getTileKey(Vector2 position) {
+    return '${position.y.toInt()},${position.x.toInt()}';
+  }
+  
+  /// Add a character to tile occupancy tracking
+  void _addCharacterToTile(Character character) {
+    final key = _getTileKey(character.position);
+    _tilesOccupancy.putIfAbsent(key, () => []);
+    if (!_tilesOccupancy[key]!.contains(character)) {
+      _tilesOccupancy[key]!.add(character);
+    }
+  }
+  
+  /// Remove a character from tile occupancy tracking
+  void _removeCharacterFromTile(Character character) {
+    // Find and remove from all tiles (in case position changed)
+    _tilesOccupancy.forEach((key, characters) {
+      characters.remove(character);
+    });
+  }
+  
+  /// Get the next available sub-position (0-3) for a tile
+  /// Takes into account both characters AND enemies (max 4 entities total)
+  int _getNextAvailableSubPosition(Vector2 position) {
+    final tile = gameState.grid.getTile(
+      position.y.toInt(),
+      position.x.toInt(),
+    );
+    
+    if (tile == null) return 0;
+    
+    // Count all entities: characters + enemy (if present)
+    final entityCount = tile.charactersHere.length + (tile.enemy != null ? 1 : 0);
+    
+    // Return the count as the next position (0-3, max 4 entities)
+    final nextPos = entityCount;
+    return nextPos.clamp(0, 3);
+  }
+  
+  /// Reassign sub-positions for all entities on a specific tile
+  /// Enemies take priority for position 0, then characters fill remaining positions
+  void _reassignSubPositionsForTile(Vector2 position) {
+    final tile = gameState.grid.getTile(
+      position.y.toInt(),
+      position.x.toInt(),
+    );
+    
+    if (tile == null) return;
+    
+    int currentPos = 0;
+    
+    // Enemy gets position 0 if present (enemies are stationary/priority)
+    if (tile.enemy != null) {
+      currentPos++; // Skip position 0 for enemy
+      // TODO: Update enemy sprite sub-position when enemy sprite system is implemented
+    }
+    
+    // Assign remaining positions to characters
+    for (final character in tile.charactersHere) {
+      if (currentPos >= 4) break; // Max 4 entities per tile
+      
+      final sprite = characterSprites[character];
+      if (sprite != null) {
+        sprite.updateSubPosition(currentPos);
+      }
+      currentPos++;
     }
   }
 

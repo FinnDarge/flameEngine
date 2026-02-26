@@ -10,6 +10,9 @@ class GridTile {
   /// Grid position (row, column)
   final Vector2 gridPosition;
   
+  /// UUID of this field from the backend API
+  String? fieldUuid;
+  
   /// Type of room/tile
   TileType type;
   
@@ -36,6 +39,7 @@ class GridTile {
 
   GridTile({
     required this.gridPosition,
+    this.fieldUuid,
     this.type = TileType.empty,
     this.nfcTagId,
     this.isRevealed = false,
@@ -49,6 +53,7 @@ class GridTile {
   /// Creates a copy of this tile with optional modifications
   GridTile copyWith({
     Vector2? gridPosition,
+    String? fieldUuid,
     TileType? type,
     String? nfcTagId,
     bool? isRevealed,
@@ -60,6 +65,7 @@ class GridTile {
   }) {
     return GridTile(
       gridPosition: gridPosition ?? this.gridPosition,
+      fieldUuid: fieldUuid ?? this.fieldUuid,
       type: type ?? this.type,
       nfcTagId: nfcTagId ?? this.nfcTagId,
       isRevealed: isRevealed ?? this.isRevealed,

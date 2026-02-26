@@ -8,6 +8,9 @@ class CharacterSpriteComponent extends PositionComponent {
   final Character character;
   final double cellSize;
   
+  /// Sub-position within tile (0-3): 0=top-left, 1=top-right, 2=bottom-left, 3=bottom-right
+  int subPosition;
+  
   late SpriteComponent _sprite;
   late TextComponent _nameText;
   late TextComponent _healthText;
@@ -15,6 +18,7 @@ class CharacterSpriteComponent extends PositionComponent {
   CharacterSpriteComponent({
     required this.character,
     required this.cellSize,
+    this.subPosition = 0,
   }) : super(
           anchor: Anchor.center,
           priority: 10, // Characters render on top of tiles
@@ -31,42 +35,42 @@ class CharacterSpriteComponent extends PositionComponent {
       final imagePath = character.characterClass.imagePath.replaceFirst('assets/images/', '');
       final image = await Flame.images.load(imagePath);
       
-      // Create sprite with proper aspect ratio
-      final spriteSize = cellSize * 0.7; // 70% of cell size
+      // Create sprite at 1/4 size for 2x2 sub-grid (0.35 = 35% of cell)
+      final spriteSize = cellSize * 0.35; // 35% of cell size (allows 2x2 grid)
       _sprite = SpriteComponent(
         sprite: Sprite(image),
         size: Vector2.all(spriteSize),
         anchor: Anchor.topLeft,
-        position: Vector2(0, 20), // Position below the text (20px for health + name)
+        position: Vector2(0, 14), // Position below the text (14px for health + name)
       );
       
-      // Name text above sprite
+      // Name text above sprite (smaller for compact display)
       _nameText = TextComponent(
         text: character.name,
         textRenderer: TextPaint(
           style: TextStyle(
             color: Color(character.color),
-            fontSize: 12,
+            fontSize: 8,
             fontWeight: FontWeight.bold,
             shadows: [
-              Shadow(color: Colors.black, blurRadius: 2, offset: Offset(1, 1)),
+              Shadow(color: Colors.black, blurRadius: 1, offset: Offset(0.5, 0.5)),
             ],
           ),
         ),
         anchor: Anchor.topCenter,
-        position: Vector2(spriteSize / 2, 12), // 12px from top (below health)
+        position: Vector2(spriteSize / 2, 8), // 8px from top (below health)
       );
       
-      // Health text above name
+      // Health text above name (smaller)
       _healthText = TextComponent(
         text: '❤ ${character.health}',
         textRenderer: TextPaint(
           style: const TextStyle(
             color: Colors.red,
-            fontSize: 10,
+            fontSize: 7,
             fontWeight: FontWeight.bold,
             shadows: [
-              Shadow(color: Colors.black, blurRadius: 2, offset: Offset(1, 1)),
+              Shadow(color: Colors.black, blurRadius: 1, offset: Offset(0.5, 0.5)),
             ],
           ),
         ),
@@ -76,7 +80,7 @@ class CharacterSpriteComponent extends PositionComponent {
       
       // Background for health text (semi-transparent)
       final healthBg = RectangleComponent(
-        size: Vector2(spriteSize * 0.6, 14), // Slightly wider than text
+        size: Vector2(spriteSize * 0.8, 10), // Cover text area
         paint: Paint()..color = Colors.black.withValues(alpha: 0.6),
         anchor: Anchor.topCenter,
         position: Vector2(spriteSize / 2, -1), // Just above health text
@@ -87,8 +91,8 @@ class CharacterSpriteComponent extends PositionComponent {
       await add(_nameText);
       await add(_healthText);
       
-      // Set size based on total height (sprite + text)
-      size = Vector2(spriteSize, spriteSize + 20);
+      // Set size based on total height (sprite + text, smaller for sub-grid)
+      size = Vector2(spriteSize, spriteSize + 14);
       
       // Set position after sprite is fully loaded and mounted
       updatePosition();
@@ -101,10 +105,20 @@ class CharacterSpriteComponent extends PositionComponent {
   void updatePosition() {
     // Convert grid position to pixel position (relative to grid component)
     // Grid position is 0-indexed (0,0) to (rows-1, cols-1)
-    // Center the character on the tile
+    
+    // Calculate sub-grid offset within the tile
+    // 2x2 sub-grid: 0=top-left, 1=top-right, 2=bottom-left, 3=bottom-right
+    final subRow = subPosition ~/ 2; // 0 or 1 (top or bottom)
+    final subCol = subPosition % 2;  // 0 or 1 (left or right)
+    
+    // Each sub-position takes half the cell (0.5)
+    // Position at center of each quadrant: 0.25 or 0.75 of cellSize
+    final offsetX = (subCol == 0) ? cellSize * 0.25 : cellSize * 0.75;
+    final offsetY = (subRow == 0) ? cellSize * 0.25 : cellSize * 0.75;
+    
     final newPosition = Vector2(
-      (character.position.x * cellSize) + (cellSize / 2),
-      (character.position.y * cellSize) + (cellSize / 2),
+      (character.position.x * cellSize) + offsetX,
+      (character.position.y * cellSize) + offsetY,
     );
     
     position = newPosition;
@@ -113,5 +127,11 @@ class CharacterSpriteComponent extends PositionComponent {
     if (isMounted) {
       _healthText.text = '❤ ${character.health}';
     }
+  }
+  
+  /// Update the sub-position within the tile
+  void updateSubPosition(int newSubPosition) {
+    subPosition = newSubPosition;
+    updatePosition();
   }
 }

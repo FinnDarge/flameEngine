@@ -54,8 +54,8 @@ class _GameplayScreenState extends State<GameplayScreen> {
   Future<void> _startNFCScanning() async {
     try {
       await widget.nfcService.startScanning((tagId, data) {
-        // Pass NFC event to game logic
-        widget.game.handleNFCTag(tagId, data);
+        // Pass NFC event to game logic (fire and forget)
+        unawaited(widget.game.handleNFCTag(tagId, data));
 
         setState(() {
           nfcStatus = 'Tag detected: $tagId';
@@ -81,7 +81,7 @@ class _GameplayScreenState extends State<GameplayScreen> {
 
   String _getDefaultNFCStatus() {
     if (widget.gameState.phase == GamePhase.playing) {
-      return 'Tap character, then cell';
+      return 'Tap destination field to move';
     } else {
       return 'Game complete';
     }
@@ -118,7 +118,7 @@ class _GameplayScreenState extends State<GameplayScreen> {
           Expanded(
             child: Text(
               isYourTurn
-                  ? 'YOUR TURN - Tap ${localCharacter?.name ?? "your character"}, then tap destination'
+                  ? 'YOUR TURN - Tap destination field (${localCharacter?.name ?? "your character"} will move)'
                   : 'Current turn: ${currentCharacter?.name ?? "Waiting for players..."}',
               style: TextStyle(
                 color: isYourTurn ? Colors.green : Colors.white70,
