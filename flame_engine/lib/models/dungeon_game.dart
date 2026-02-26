@@ -1,3 +1,4 @@
+import 'dart:async' show Timer;
 import 'package:flame/game.dart';
 import 'package:flame/flame.dart';
 import 'game_grid.dart';
@@ -7,26 +8,30 @@ import 'tile_event.dart';
 import '../components/grid_component.dart';
 import '../components/character_sprite_component.dart';
 import '../services/management_api_service.dart';
+import '../services/session_api_service.dart';
 
 /// Main Flame game class
 class DungeonGame extends FlameGame {
   late GameState gameState;
   GridComponent? gridComponent;
-  
+
   // Track character sprite components
   final Map<Character, CharacterSpriteComponent> characterSprites = {};
-  
+
   // Track which characters are on which tiles (for sub-position assignment)
   // Key: "row,col", Value: List of characters on that tile
   final Map<String, List<Character>> _tilesOccupancy = {};
-  
+
   late final double cellSize;
+
+  // Timer for syncing remote player positions
+  Timer? _remoteSyncTimer;
 
   DungeonGame({int rows = 4, int columns = 4}) {
     // Calculate cell size to make grid fill consistent space regardless of dimensions
     // Target grid size of 400px, so cellSize = 400 / gridDimension
     cellSize = 400.0 / rows.toDouble();
-    
+
     final grid = GameGrid(rows: rows, columns: columns);
     grid.initializeStaticGrid(); // Static grid - backend drives logic
 
@@ -72,6 +77,14 @@ class DungeonGame extends FlameGame {
     if (gridComponent != null) {
       gridComponent!.centerOnScreen(size);
     }
+  }
+
+  @override
+  void onRemove() {
+    // Clean up the sync timer when game is removed
+    _remoteSyncTimer?.cancel();
+    _remoteSyncTimer = null;
+    super.onRemove();
   }
 
   /// Handle NFC tag detection
@@ -148,12 +161,12 @@ class DungeonGame extends FlameGame {
       print('🎯 Attempting to move ${character.name} to field ($row, $col)...');
 
       // Check if we have API session configured
-      if (gameState.sessionId != null && 
-          gameState.playerAccessToken != null && 
+      if (gameState.sessionId != null &&
+          gameState.playerAccessToken != null &&
           tile.fieldUuid != null) {
         // API-driven movement
         print('🌐 Submitting move to backend API...');
-        
+
         final apiService = ManagementApiService();
         final result = await apiService.walkMove(
           sessionId: gameState.sessionId!,
@@ -179,7 +192,7 @@ class DungeonGame extends FlameGame {
       if (moved) {
         // Update visual
         gridComponent?.updateAllTiles();
-        
+
         // Update character sprite position
         _updateCharacterSpritePosition(character);
 
@@ -197,10 +210,106 @@ class DungeonGame extends FlameGame {
     }
   }
 
+  /// Load other players from the session and create character sprites for them
+  Future<void> _loadSessionPlayers() async {
+    if (gameState.sessionUuid == null) {
+      print('ℹ No session UUID, skipping loading other players');
+      return;
+    }
+
+    try {
+      print('👥 Fetching other players from session: ${gameState.sessionUuid}');
+      final sessionApi = SessionApiService();
+      final sessionPlayers =
+          await sessionApi.getSessionPlayers(gameState.sessionUuid!);
+
+      print('✓ Loaded ${sessionPlayers.length} session player(s)');
+
+      // For each session player that isn't the local player, create a character
+      for (final sessionPlayer in sessionPlayers) {
+        // Find the matching character class from the role name
+        CharacterClass? characterClass;
+
+        if (gameState.gameStartPositions.isNotEmpty) {
+          // Find the game piece for this role
+          final gamePiece = gameState.gameStartPositions.firstWhere(
+            (piece) => piece.role == sessionPlayer.role,
+            orElse: () => gameState.gameStartPositions.first,
+          );
+
+          if (gamePiece.roleName != null) {
+            characterClass = gameState.mapApiNameToCharacterClass(
+              gamePiece.roleName!,
+            );
+          }
+        }
+
+        if (characterClass == null) {
+          print(
+            '⚠ Could not determine character class for session player: ${sessionPlayer.role}',
+          );
+          // Fallback: assign any available unclaimed character class
+          characterClass = _assignAvailableCharacterClass();
+          if (characterClass == null) {
+            print('⚠ No available character classes to assign');
+            continue;
+          }
+          print(
+            '✓ Assigned fallback character class: ${characterClass.name}',
+          );
+        }
+
+        // Skip if this character is already in the game (i.e., it's the local player)
+        if (gameState.characters
+            .any((c) => c.characterClass == characterClass)) {
+          print(
+              'ℹ Character ${characterClass.name} already claimed by local player');
+          continue;
+        }
+
+        // Create a character for this other player
+        final character = Character(
+          characterClass: characterClass,
+          nfcTagId: '', // Other players don't have NFC tags associated
+          position: Vector2(0, 0), // Will be set by startGame()
+        );
+
+        gameState.addCharacter(character);
+        print('✓ Added other player character: ${character.name}');
+      }
+    } catch (e) {
+      print('⚠ Error loading session players: $e');
+    }
+  }
+
+  /// Assign an available unclaimed character class
+  CharacterClass? _assignAvailableCharacterClass() {
+    final availableClasses = [
+      CharacterClass.controller,
+      CharacterClass.engineer,
+      CharacterClass.striker,
+      CharacterClass.vanguard,
+    ];
+
+    for (final characterClass in availableClasses) {
+      // Check if this class is already claimed
+      if (!gameState.characters
+          .any((c) => c.characterClass == characterClass)) {
+        return characterClass;
+      }
+    }
+
+    return null;
+  }
+
   /// Reset the game to initial state
   void resetGame() {
     gameState.grid.initializeStaticGrid();
     gridComponent?.updateAllTiles();
+
+    // Stop remote sync timer
+    _remoteSyncTimer?.cancel();
+    _remoteSyncTimer = null;
 
     // Remove all character sprites
     for (final sprite in characterSprites.values) {
@@ -216,84 +325,266 @@ class DungeonGame extends FlameGame {
     gameState.turnNumber = 1;
   }
 
+  /// Start the timer to periodically sync remote player positions
+  void _startRemotePlayerSync() {
+    // Cancel any existing timer
+    _remoteSyncTimer?.cancel();
+
+    // Sync every 1 second to keep remote players updated
+    _remoteSyncTimer = Timer.periodic(
+      const Duration(seconds: 1),
+      (_) {
+        _syncRemotePlayerPositions();
+      },
+    );
+
+    print('🔄 Started remote player position sync (1s interval)');
+  }
+
+  /// Sync remote player positions from the backend API
+  Future<void> _syncRemotePlayerPositions() async {
+    if (gameState.sessionId == null || gameState.playerAccessToken == null) {
+      return;
+    }
+
+    try {
+      final apiService = ManagementApiService();
+      final boardState = await apiService.getSessionBoard(
+        sessionId: gameState.sessionId!,
+        accessToken: gameState.playerAccessToken!,
+      );
+
+      if (boardState == null) {
+        return;
+      }
+
+      // Parse board state to extract character positions
+      // The board state should contain information about all characters on the board
+      // Expected format: { "board": { "pieces": [{ "role": "...", "field": { "x": ..., "y": ... } }, ...] } }
+
+      await _updateRemoteCharactersFromBoardState(boardState);
+    } catch (e) {
+      // Silently fail on sync errors - don't spam logs
+      // print('⚠ Error syncing remote player positions: $e');
+    }
+  }
+
+  /// Update remote character positions from board state
+  Future<void> _updateRemoteCharactersFromBoardState(
+    Map<String, dynamic> boardState,
+  ) async {
+    try {
+      // Extract pieces from board state - handle various possible API response formats
+      List<dynamic> pieces = [];
+
+      // Try format: { "board": { "pieces": [...] } }
+      if (boardState.containsKey('board')) {
+        final board = boardState['board'];
+        if (board is Map && board.containsKey('pieces')) {
+          pieces = board['pieces'] as List<dynamic>;
+        }
+      }
+
+      // Try format: { "pieces": [...] }
+      if (pieces.isEmpty && boardState.containsKey('pieces')) {
+        pieces = boardState['pieces'] as List<dynamic>;
+      }
+
+      // Try format: direct array or other structure
+      if (pieces.isEmpty && boardState.containsKey('characters')) {
+        pieces = boardState['characters'] as List<dynamic>;
+      }
+
+      // Update each piece's position
+      for (final piece in pieces) {
+        if (piece is! Map<String, dynamic>) continue;
+
+        // Extract role/character identifier
+        final role = piece['role'] as String?;
+        final roleName = piece['roleName'] as String?;
+
+        if (role == null && roleName == null) continue;
+
+        // Find matching character in game state
+        final searchName = (roleName ?? role ?? '').toLowerCase();
+        Character? character;
+        try {
+          character = gameState.characters.firstWhere(
+            (c) => c.characterClass.name.toLowerCase() == searchName,
+          );
+        } catch (e) {
+          // Character not found
+          character = null;
+        }
+
+        // Skip local player's character (we update that directly through user input)
+        if (character == null || character == gameState.localPlayer.character) {
+          continue;
+        }
+
+        // Extract position from piece data
+        // Try format: { "field": { "x": ..., "y": ... } }
+        Vector2? newPosition;
+
+        if (piece.containsKey('field')) {
+          final field = piece['field'];
+          if (field is Map) {
+            final x = field['x'];
+            final y = field['y'];
+            if (x != null && y != null) {
+              newPosition = Vector2(
+                (x is int ? x.toDouble() : x as double),
+                (y is int ? y.toDouble() : y as double),
+              );
+            }
+          }
+        }
+
+        // Try format: { "position": { "x": ..., "y": ... } }
+        if (newPosition == null && piece.containsKey('position')) {
+          final pos = piece['position'];
+          if (pos is Map) {
+            final x = pos['x'];
+            final y = pos['y'];
+            if (x != null && y != null) {
+              newPosition = Vector2(
+                (x is int ? x.toDouble() : x as double),
+                (y is int ? y.toDouble() : y as double),
+              );
+            }
+          }
+        }
+
+        // Try format: { "x": ..., "y": ... } at root level
+        if (newPosition == null) {
+          final x = piece['x'];
+          final y = piece['y'];
+          if (x != null && y != null) {
+            newPosition = Vector2(
+              (x is int ? x.toDouble() : x as double),
+              (y is int ? y.toDouble() : y as double),
+            );
+          }
+        }
+
+        // Update character position if we found it
+        if (newPosition != null && newPosition != character.position) {
+          print(
+            '🔄 Updating ${character.name} position from ${character.position} to $newPosition',
+          );
+          character.position = newPosition;
+          _updateCharacterSpritePosition(character);
+        }
+      }
+    } catch (e) {
+      // Silently fail - don't spam logs during regular sync
+      // print('⚠ Error parsing board state: $e');
+    }
+  }
+
   /// Start the game after character selection
   Future<void> startGameplay() async {
+    // Fetch starting positions from backend before starting the game
+    if (gameState.selectedApiGame != null &&
+        gameState.gameStartPositions.isEmpty) {
+      print('📋 Fetching game piece starting positions from backend...');
+      final apiService = ManagementApiService();
+      final gamePieces =
+          await apiService.getGamePieces(gameState.selectedApiGame!.uuid);
+      gameState.gameStartPositions = List.unmodifiable(gamePieces);
+
+      if (gamePieces.isNotEmpty) {
+        print(
+            '✓ Loaded ${gamePieces.length} game piece(s) with starting positions');
+      } else {
+        print(
+            '⚠ No game pieces returned from backend (will use default positions)');
+      }
+    }
+
+    // Load other players from the session
+    await _loadSessionPlayers();
+
     gameState.startGame();
     gridComponent?.updateAllTiles();
-    
+
     // Wait for the game to fully load (onLoad complete)
     await loaded;
-    
+
     // Ensure character sprites exist for all players
     await ensureCharacterSprites();
-    
+
     // Update all character sprite positions to match their grid positions
     for (final entry in characterSprites.entries) {
       entry.value.updatePosition();
     }
+
+    // Start syncing remote player positions if we have a session
+    if (gameState.sessionId != null && gameState.playerAccessToken != null) {
+      _startRemotePlayerSync();
+    }
   }
-  
+
   /// Ensure character sprites exist for all characters that have been claimed
   Future<void> ensureCharacterSprites() async {
-    // Add sprite for local player's character if it exists and doesn't have a sprite
-    final localCharacter = gameState.localPlayer.character;
-    if (localCharacter != null && !characterSprites.containsKey(localCharacter)) {
-      await _addCharacterSprite(localCharacter);
+    // Add sprites for all characters in the game
+    for (final character in gameState.characters) {
+      if (!characterSprites.containsKey(character)) {
+        await _addCharacterSprite(character);
+      }
     }
-    
-    // TODO: Add sprites for other players' characters when multiplayer is implemented
   }
-  
+
   /// Add a character sprite component to the game
   Future<void> _addCharacterSprite(Character character) async {
     // Don't add if already exists
     if (characterSprites.containsKey(character)) return;
-    
+
     // Wait for grid component to be fully loaded
     if (gridComponent == null) return;
-    
+
     // Wait for grid to finish loading (tile images, etc.)
     await gridComponent!.loaded;
-    
+
     // Determine sub-position based on how many characters are already on this tile
     final subPos = _getNextAvailableSubPosition(character.position);
-    
+
     final sprite = CharacterSpriteComponent(
       character: character,
       cellSize: cellSize,
       subPosition: subPos,
     );
-    
+
     // Add sprite as a child of the grid component so it moves with the grid
     await gridComponent!.add(sprite);
     characterSprites[character] = sprite;
-    
+
     // Track this character's position
     _addCharacterToTile(character);
   }
-  
+
   /// Update a character sprite's position
   void _updateCharacterSpritePosition(Character character) {
     final sprite = characterSprites[character];
     if (sprite != null) {
       // Remove from old tile
       _removeCharacterFromTile(character);
-      
+
       // Reassign sub-positions for all characters on the new tile
       _reassignSubPositionsForTile(character.position);
-      
+
       // Add to new tile
       _addCharacterToTile(character);
-      
+
       sprite.updatePosition();
     }
   }
-  
+
   /// Get the tile key for tracking occupancy
   String _getTileKey(Vector2 position) {
     return '${position.y.toInt()},${position.x.toInt()}';
   }
-  
+
   /// Add a character to tile occupancy tracking
   void _addCharacterToTile(Character character) {
     final key = _getTileKey(character.position);
@@ -302,7 +593,7 @@ class DungeonGame extends FlameGame {
       _tilesOccupancy[key]!.add(character);
     }
   }
-  
+
   /// Remove a character from tile occupancy tracking
   void _removeCharacterFromTile(Character character) {
     // Find and remove from all tiles (in case position changed)
@@ -310,7 +601,7 @@ class DungeonGame extends FlameGame {
       characters.remove(character);
     });
   }
-  
+
   /// Get the next available sub-position (0-3) for a tile
   /// Takes into account both characters AND enemies (max 4 entities total)
   int _getNextAvailableSubPosition(Vector2 position) {
@@ -318,17 +609,18 @@ class DungeonGame extends FlameGame {
       position.y.toInt(),
       position.x.toInt(),
     );
-    
+
     if (tile == null) return 0;
-    
+
     // Count all entities: characters + enemy (if present)
-    final entityCount = tile.charactersHere.length + (tile.enemy != null ? 1 : 0);
-    
+    final entityCount =
+        tile.charactersHere.length + (tile.enemy != null ? 1 : 0);
+
     // Return the count as the next position (0-3, max 4 entities)
     final nextPos = entityCount;
     return nextPos.clamp(0, 3);
   }
-  
+
   /// Reassign sub-positions for all entities on a specific tile
   /// Enemies take priority for position 0, then characters fill remaining positions
   void _reassignSubPositionsForTile(Vector2 position) {
@@ -336,21 +628,21 @@ class DungeonGame extends FlameGame {
       position.y.toInt(),
       position.x.toInt(),
     );
-    
+
     if (tile == null) return;
-    
+
     int currentPos = 0;
-    
+
     // Enemy gets position 0 if present (enemies are stationary/priority)
     if (tile.enemy != null) {
       currentPos++; // Skip position 0 for enemy
       // TODO: Update enemy sprite sub-position when enemy sprite system is implemented
     }
-    
+
     // Assign remaining positions to characters
     for (final character in tile.charactersHere) {
       if (currentPos >= 4) break; // Max 4 entities per tile
-      
+
       final sprite = characterSprites[character];
       if (sprite != null) {
         sprite.updateSubPosition(currentPos);

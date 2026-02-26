@@ -5,7 +5,13 @@ import 'game_grid.dart';
 import 'tile_type.dart';
 import 'game_scenario.dart';
 import '../services/management_api_service.dart'
-    show ApiPlayer, ApiBoard, ApiPiece, ApiGame, ManagementApiService;
+    show
+        ApiPlayer,
+        ApiBoard,
+        ApiPiece,
+        ApiGame,
+        ApiGamePiece,
+        ManagementApiService;
 import '../utils/sample_items.dart';
 
 /// Manages the overall game state
@@ -43,6 +49,9 @@ class GameState {
   /// Pieces loaded from the management API (characters with NFC tags).
   List<ApiPiece> apiPieces = const [];
 
+  /// Game pieces loaded from the backend (/gamePieces endpoint) with starting positions
+  List<ApiGamePiece> gameStartPositions = const [];
+
   /// Access token for the current player (for API authentication)
   String? playerAccessToken;
 
@@ -62,9 +71,8 @@ class GameState {
   ApiPlayer? localApiPlayer;
 
   GameState({required this.grid, Vector2? goal})
-    : goalPosition =
-          goal ??
-          Vector2((grid.columns - 1).toDouble(), (grid.rows - 1).toDouble()) {
+      : goalPosition = goal ??
+            Vector2((grid.columns - 1).toDouble(), (grid.rows - 1).toDouble()) {
     // (4,4) in 1-indexed = (3,3) in 0-indexed
     // Create local player with unique ID
     localPlayer = Player(id: DateTime.now().millisecondsSinceEpoch.toString());
@@ -119,7 +127,7 @@ class GameState {
   /// Map API character names/colors to CharacterClass enum
   /// The backend stores pieces by color (Red, White, Blue, Purple)
   /// but we need to map them to proper class types
-  CharacterClass? _mapApiNameToCharacterClass(String apiName) {
+  CharacterClass? mapApiNameToCharacterClass(String apiName) {
     final lower = apiName.toLowerCase();
 
     // Direct class name matches
@@ -160,7 +168,7 @@ class GameState {
         print('   Checking: ${piece.nfcTagId} (${piece.name})');
         if (_nfcTagMatches(piece.nfcTagId, nfcTagId)) {
           // Map from API piece name to CharacterClass enum
-          characterClass = _mapApiNameToCharacterClass(piece.name);
+          characterClass = mapApiNameToCharacterClass(piece.name);
           characterName = piece.name;
           print('   ✓ MATCH FOUND: ${piece.name} -> ${characterClass?.name}');
           print('      API tag: ${piece.nfcTagId}');
@@ -242,7 +250,8 @@ class GameState {
     }
 
     // Validate destination tile has space (max 4 entities: characters + enemies)
-    final entityCount = tile.charactersHere.length + (tile.enemy != null ? 1 : 0);
+    final entityCount =
+        tile.charactersHere.length + (tile.enemy != null ? 1 : 0);
     if (entityCount >= 4) {
       print('⚠ The Field is full and cannot hold any more Characters!');
       return false;
@@ -320,14 +329,116 @@ class GameState {
       }
     }
 
-    // Place all characters at starting position
-    final startTile = grid.getTile(0, 0);
-    if (startTile != null) {
-      for (var character in characters) {
-        character.position = Vector2(0, 0); // (1,1) in 1-indexed
-        startTile.charactersHere.add(character);
+    // Define clockwise corner positions: upper-left, upper-right, lower-right, lower-left
+    final cornerPositions = [
+      Vector2(0, 0), // Upper left
+      Vector2((grid.columns - 1).toDouble(), 0), // Upper right
+      Vector2((grid.columns - 1).toDouble(),
+          (grid.rows - 1).toDouble()), // Lower right
+      Vector2(0, (grid.rows - 1).toDouble()), // Lower left
+    ];
+
+    // Create list of (character, backendPosition) tuples for sorting
+    final characterWithPositions = <(Character, Vector2?)>[];
+
+    for (var character in characters) {
+      Vector2? backendPosition;
+
+      if (gameStartPositions.isNotEmpty) {
+        // Try to match character to a game piece by character class name
+        final characterClassName = character.characterClass.name;
+
+        for (final gamePiece in gameStartPositions) {
+          // Match by role name (which should correspond to character class)
+          if (gamePiece.roleName != null &&
+              gamePiece.roleName!.toLowerCase() ==
+                  characterClassName.toLowerCase() &&
+              gamePiece.positionX != null &&
+              gamePiece.positionY != null) {
+            backendPosition = Vector2(
+              gamePiece.positionX!,
+              gamePiece.positionY!,
+            );
+            print(
+              '✓ Found backend start position for ${character.name}: ($backendPosition.x, $backendPosition.y)',
+            );
+            break;
+          }
+        }
+
+        // Fallback: try to match by NFC tag
+        if (backendPosition == null) {
+          for (final gamePiece in gameStartPositions) {
+            // Match piece by NFC tag ID through apiPieces
+            for (final piece in apiPieces) {
+              if (piece.nfcTagId == character.nfcTagId &&
+                  piece.name.toLowerCase() ==
+                      gamePiece.pieceName?.toLowerCase() &&
+                  gamePiece.positionX != null &&
+                  gamePiece.positionY != null) {
+                backendPosition = Vector2(
+                  gamePiece.positionX!,
+                  gamePiece.positionY!,
+                );
+                print(
+                  '✓ Found backend start position for ${character.name} via NFC: ($backendPosition.x, $backendPosition.y)',
+                );
+                break;
+              }
+            }
+            if (backendPosition != null) break;
+          }
+        }
       }
-      startTile.hasPlayer = true;
+
+      if (backendPosition == null && gameStartPositions.isNotEmpty) {
+        print(
+            '⚠ No matching backend position found for ${character.name}, will use corner position');
+      } else if (backendPosition == null) {
+        print(
+            '⚠ No backend game pieces loaded, will use corner position for ${character.name}');
+      }
+
+      characterWithPositions.add((character, backendPosition));
+    }
+
+    // Sort characters by backend position for clockwise arrangement
+    // Sort by (x + y) to get a diagonal ordering, then by x for consistency
+    characterWithPositions.sort((a, b) {
+      final posA = a.$2;
+      final posB = b.$2;
+
+      if (posA == null && posB == null) return 0;
+      if (posA == null) return 1;
+      if (posB == null) return -1;
+
+      final sumA = posA.x + posA.y;
+      final sumB = posB.x + posB.y;
+
+      if (sumA != sumB) {
+        return sumA.compareTo(sumB);
+      }
+      return posA.x.compareTo(posB.x);
+    });
+
+    // Place characters at clockwise corner positions
+    for (int i = 0;
+        i < characterWithPositions.length && i < cornerPositions.length;
+        i++) {
+      final character = characterWithPositions[i].$1;
+      final startPosition = cornerPositions[i];
+
+      character.position = startPosition;
+      final startTile =
+          grid.getTile(startPosition.y.toInt(), startPosition.x.toInt());
+      if (startTile != null) {
+        startTile.charactersHere.add(character);
+        startTile.hasPlayer = true;
+      }
+
+      print(
+        '✓ ${character.name} placed at clockwise position ${i + 1}: (${startPosition.x.toInt()}, ${startPosition.y.toInt()})',
+      );
     }
   }
 

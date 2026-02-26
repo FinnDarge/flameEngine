@@ -65,15 +65,15 @@ class _SessionSelectionScreenState extends State<SessionSelectionScreen> {
   bool get _hasPlayer => _selectedPlayer != null;
 
   void _resetCreateState() => setState(() {
-    _createdJoinCode = null;
-    _createError = null;
-  });
+        _createdJoinCode = null;
+        _createError = null;
+      });
 
   void _resetJoinState() => setState(() {
-    _joinError = null;
-    _joinedCode = null;
-    _joinedSessionClaimedRoleUuids = [];
-  });
+        _joinError = null;
+        _joinedCode = null;
+        _joinedSessionClaimedRoleUuids = [];
+      });
 
   // ── Create ────────────────────────────────────────────────────────────────
 
@@ -129,12 +129,10 @@ class _SessionSelectionScreenState extends State<SessionSelectionScreen> {
       final detail = await widget.sessionApi.getSessionByJoinCode(code);
 
       // Find the game from the session's game UUID
-      final game =
-          widget.gameState.apiGames.firstWhere(
-                (g) => g.uuid == detail.game,
-                orElse: () => null as dynamic,
-              )
-              as ApiGame?;
+      final game = widget.gameState.apiGames.firstWhere(
+        (g) => g.uuid == detail.game,
+        orElse: () => null as dynamic,
+      ) as ApiGame?;
 
       widget.gameState
         ..sessionUuid = detail.uuid
@@ -289,8 +287,8 @@ class _SessionSelectionScreenState extends State<SessionSelectionScreen> {
                         color: Colors.blue.shade700,
                         onPressed:
                             (!_hasPlayer || _selectedGame == null || _creating)
-                            ? null
-                            : _createSession,
+                                ? null
+                                : _createSession,
                         loading: _creating,
                       ),
                     ],
@@ -418,9 +416,8 @@ class _SessionSelectionScreenState extends State<SessionSelectionScreen> {
                         label: _joining ? 'Joining…' : 'Join Session',
                         icon: Icons.login_rounded,
                         color: Colors.deepPurple.shade700,
-                        onPressed: (!_hasPlayer || _joining)
-                            ? null
-                            : _joinSession,
+                        onPressed:
+                            (!_hasPlayer || _joining) ? null : _joinSession,
                         loading: _joining,
                       ),
                   ],
@@ -436,28 +433,29 @@ class _SessionSelectionScreenState extends State<SessionSelectionScreen> {
   // ── Small helpers ─────────────────────────────────────────────────────────
 
   InputDecoration _inputDecoration(String hint) => InputDecoration(
-    hintText: hint,
-    hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
-    filled: true,
-    fillColor: const Color(0xFF2d2d2d),
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(10),
-      borderSide: BorderSide.none,
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(10),
-      borderSide: const BorderSide(color: Colors.white24, width: 1.5),
-    ),
-    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-  );
+        hintText: hint,
+        hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+        filled: true,
+        fillColor: const Color(0xFF2d2d2d),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Colors.white24, width: 1.5),
+        ),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      );
 
   Widget _infoText(String msg) => Padding(
-    padding: const EdgeInsets.only(top: 4),
-    child: Text(
-      msg,
-      style: TextStyle(color: Colors.amber.shade300, fontSize: 12),
-    ),
-  );
+        padding: const EdgeInsets.only(top: 4),
+        child: Text(
+          msg,
+          style: TextStyle(color: Colors.amber.shade300, fontSize: 12),
+        ),
+      );
 
   Widget _errorText(String msg) =>
       Text(msg, style: const TextStyle(color: Colors.redAccent, fontSize: 12));
@@ -468,31 +466,34 @@ class _SessionSelectionScreenState extends State<SessionSelectionScreen> {
     required Color color,
     required VoidCallback? onPressed,
     bool loading = false,
-  }) => SizedBox(
-    width: double.infinity,
-    child: ElevatedButton.icon(
-      onPressed: onPressed,
-      icon: loading
-          ? const SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: Colors.white,
-              ),
-            )
-          : Icon(icon),
-      label: Text(label),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color,
-        disabledBackgroundColor: color.withOpacity(0.35),
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-      ),
-    ),
-  );
+  }) =>
+      SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: onPressed,
+          icon: loading
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : Icon(icon),
+          label: Text(label),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: color,
+            disabledBackgroundColor: color.withOpacity(0.35),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            textStyle:
+                const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          ),
+        ),
+      );
 }
 
 // ── Join code display ─────────────────────────────────────────────────────────

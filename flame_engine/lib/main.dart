@@ -46,6 +46,7 @@ class _GameNavigatorState extends State<GameNavigator> {
   final ManagementApiService _api = ManagementApiService();
   final SessionApiService _sessionApi = SessionApiService();
   bool _apiLoading = true;
+  bool _serverOffline = false;
 
   @override
   void initState() {
@@ -80,18 +81,14 @@ class _GameNavigatorState extends State<GameNavigator> {
     game = DungeonGame(rows: rows, columns: cols);
 
     // Store API data in game state
-    game.gameState.apiPlayers = _kSkipApi
-        ? const []
-        : List.unmodifiable(_api.players);
-    game.gameState.apiBoards = _kSkipApi
-        ? const []
-        : List.unmodifiable(_api.boards);
-    game.gameState.apiPieces = _kSkipApi
-        ? const []
-        : List.unmodifiable(_api.pieces);
-    game.gameState.apiGames = _kSkipApi
-        ? const []
-        : List.unmodifiable(_api.games);
+    game.gameState.apiPlayers =
+        _kSkipApi ? const [] : List.unmodifiable(_api.players);
+    game.gameState.apiBoards =
+        _kSkipApi ? const [] : List.unmodifiable(_api.boards);
+    game.gameState.apiPieces =
+        _kSkipApi ? const [] : List.unmodifiable(_api.pieces);
+    game.gameState.apiGames =
+        _kSkipApi ? const [] : List.unmodifiable(_api.games);
 
     print('\n✅ Game state initialized:');
     print('   gameState.apiPlayers: ${game.gameState.apiPlayers.length}');
@@ -104,6 +101,15 @@ class _GameNavigatorState extends State<GameNavigator> {
       }
     }
     print('');
+
+    // Check if server is offline (no games and no players retrieved)
+    if (!_kSkipApi &&
+        game.gameState.apiGames.isEmpty &&
+        game.gameState.apiPlayers.isEmpty) {
+      _serverOffline = true;
+      print('⚠️  WARNING: Game server appears to be offline!');
+      print('   No games and no players could be retrieved from the backend.');
+    }
 
     if (mounted) setState(() => _apiLoading = false);
   }
@@ -178,6 +184,64 @@ class _GameNavigatorState extends State<GameNavigator> {
               Text(
                 'Loading game data...',
                 style: TextStyle(color: Colors.white70, fontSize: 16),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Show offline message if server is offline
+    if (_serverOffline) {
+      return Scaffold(
+        backgroundColor: Color(0xFF1a1a1a),
+        appBar: AppBar(
+          backgroundColor: Colors.red.shade900,
+          title: const Text('Server Offline'),
+          centerTitle: true,
+        ),
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.cloud_off,
+                size: 80,
+                color: Colors.red.shade400,
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Game Server is Offline',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Unable to connect to the game server.',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 30),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.refresh),
+                label: const Text('Retry'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.deepPurple,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                ),
+                onPressed: () {
+                  setState(() {
+                    _apiLoading = true;
+                    _serverOffline = false;
+                  });
+                  _loadApiThenStart();
+                },
               ),
             ],
           ),

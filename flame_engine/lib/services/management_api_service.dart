@@ -65,7 +65,7 @@ class ApiPiece {
   final String nfcTagId;
 
   ApiPiece({required this.uuid, required this.name, required this.nfcIdRaw})
-    : nfcTagId = _convertNfcId(nfcIdRaw);
+      : nfcTagId = _convertNfcId(nfcIdRaw);
 
   /// Convert raw hex (e.g. "010062f58cf253") to colon-separated reversed-byte
   /// uppercase format (e.g. "53:F2:8C:F5:62:00:01").
@@ -112,14 +112,81 @@ class ApiPiece {
 
   /// Build the mock NFC payload map used by [NFCService.triggerMockScan].
   Map<String, dynamic> toMockPayload() => {
-    'tagId': nfcTagId,
-    'uuid': uuid,
-    'characterName': name,
-    'characterClass': characterClass,
-  };
+        'tagId': nfcTagId,
+        'uuid': uuid,
+        'characterName': name,
+        'characterClass': characterClass,
+      };
 
   @override
   String toString() => 'ApiPiece($name, nfcTagId: $nfcTagId)';
+}
+
+/// A game piece from the management API with starting position information.
+class ApiGamePiece {
+  /// UUID of the game piece
+  final String uuid;
+
+  /// Role UUID (which character role this piece is for)
+  final String? role;
+
+  /// Role name (human-readable)
+  final String? roleName;
+
+  /// Piece UUID (the physical NFC figure)
+  final String? piece;
+
+  /// Piece name (human-readable)
+  final String? pieceName;
+
+  /// Initial field UUID (where the piece should start)
+  final String? initialField;
+
+  /// Initial position within the field (x, y coordinates)
+  final Map<String, dynamic>? initialFieldPosition;
+
+  const ApiGamePiece({
+    required this.uuid,
+    required this.role,
+    required this.roleName,
+    required this.piece,
+    required this.pieceName,
+    required this.initialField,
+    required this.initialFieldPosition,
+  });
+
+  factory ApiGamePiece.fromJson(Map<String, dynamic> json) {
+    final uuid = json['uuid'] as String?;
+    if (uuid == null) {
+      throw FormatException(
+        'ApiGamePiece missing required field: uuid',
+      );
+    }
+
+    return ApiGamePiece(
+      uuid: uuid,
+      role: json['role'] as String?,
+      roleName: json['roleName'] as String?,
+      piece: json['piece'] as String?,
+      pieceName: json['pieceName'] as String?,
+      initialField: json['initialField'] as String?,
+      initialFieldPosition:
+          json['initialFieldPosition'] as Map<String, dynamic>?,
+    );
+  }
+
+  /// Extract x and y from initialFieldPosition
+  double? get positionX => initialFieldPosition != null
+      ? (initialFieldPosition!['x'] as num?)?.toDouble()
+      : null;
+
+  double? get positionY => initialFieldPosition != null
+      ? (initialFieldPosition!['y'] as num?)?.toDouble()
+      : null;
+
+  @override
+  String toString() =>
+      'ApiGamePiece($pieceName -> $roleName, pos: ($positionX, $positionY))';
 }
 
 /// A game from the management API (maps to a playable scenario on a board).
@@ -338,23 +405,24 @@ class ManagementApiService {
   }) async {
     try {
       print('📋 Getting session board state: $sessionId');
-      
+
       final headers = {
         'Authorization': 'Bearer $accessToken',
         'Accept': 'application/json',
       };
-      
+
       final response = await http.get(
         Uri.parse('$_kApiBase/sessionBoard?session=$sessionId'),
         headers: headers,
       );
-      
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body) as Map<String, dynamic>;
         print('✓ Board state retrieved');
         return data;
       } else {
-        print('⚠ Failed to get board state: ${response.statusCode} ${response.reasonPhrase}');
+        print(
+            '⚠ Failed to get board state: ${response.statusCode} ${response.reasonPhrase}');
         print('   Response: ${response.body}');
         return null;
       }
@@ -372,23 +440,24 @@ class ManagementApiService {
   }) async {
     try {
       print('🎮 Getting available moves for session: $sessionId');
-      
+
       final headers = {
         'Authorization': 'Bearer $accessToken',
         'Accept': 'application/json',
       };
-      
+
       final response = await http.get(
         Uri.parse('$_kApiBase/sessionMoves?session=$sessionId'),
         headers: headers,
       );
-      
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body) as Map<String, dynamic>;
         print('✓ Available moves retrieved');
         return data;
       } else {
-        print('⚠ Failed to get moves: ${response.statusCode} ${response.reasonPhrase}');
+        print(
+            '⚠ Failed to get moves: ${response.statusCode} ${response.reasonPhrase}');
         print('   Response: ${response.body}');
         return null;
       }
@@ -409,33 +478,67 @@ class ManagementApiService {
     try {
       print('🚶 Submitting walk move to session: $sessionId');
       print('   Target field: $targetFieldUuid');
-      
+
       final headers = {
         'Authorization': 'Bearer $accessToken',
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       };
-      
+
       final body = json.encode({'target': targetFieldUuid});
-      
+
       final response = await http.post(
         Uri.parse('$_kApiBase/sessionMoves/walk?session=$sessionId'),
         headers: headers,
         body: body,
       );
-      
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body) as Map<String, dynamic>;
         print('✓ Move accepted by server');
         return data;
       } else {
-        print('⚠ Move rejected: ${response.statusCode} ${response.reasonPhrase}');
+        print(
+            '⚠ Move rejected: ${response.statusCode} ${response.reasonPhrase}');
         print('   Response: ${response.body}');
         return null;
       }
     } catch (e) {
       print('❌ Error submitting move: $e');
       return null;
+    }
+  }
+
+  /// Fetch game pieces for a specific game
+  /// GET /gamePieces?game={gameUuid}
+  Future<List<ApiGamePiece>> getGamePieces(String gameUuid) async {
+    try {
+      print('🎲 Fetching game pieces for game: $gameUuid');
+
+      final response = await http.get(
+        Uri.parse('$_kApiBase/gamePieces?game=$gameUuid'),
+        headers: _headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body) as List<dynamic>;
+        final pieces = data
+            .map((e) => ApiGamePiece.fromJson(e as Map<String, dynamic>))
+            .toList();
+        print('✓ Retrieved ${pieces.length} game pieces');
+        for (final piece in pieces) {
+          print('   • $piece');
+        }
+        return pieces;
+      } else {
+        print(
+            '⚠ Failed to get game pieces: ${response.statusCode} ${response.reasonPhrase}');
+        print('   Response: ${response.body}');
+        return [];
+      }
+    } catch (e) {
+      print('❌ Error getting game pieces: $e');
+      return [];
     }
   }
 }
