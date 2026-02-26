@@ -17,6 +17,9 @@ import '../utils/sample_items.dart';
 
 /// Manages the overall game state
 class GameState {
+  static const int minResourceValue = 0;
+  static const int maxInstability = 10;
+
   /// The UUID of the session creator (owner)
   String? sessionCreatorUuid;
 
@@ -42,10 +45,10 @@ class GameState {
   int turnNumber = 1;
 
 
-  /// Lightweight party resources used by event resolution reducers/UI.
-  int eventEnergy = 0;
-  int eventObjective = 0;
-  int eventInstability = 0;
+  /// Normalized gameplay resources used by reducers/UI.
+  final Map<String, PlayerResourceState> playerResources = {};
+  TeamObjectiveProgress objectiveProgress = const TeamObjectiveProgress();
+  GlobalInstability instability = const GlobalInstability();
 
   /// Goal position
   final Vector2 goalPosition;
@@ -117,6 +120,7 @@ class GameState {
   void addCharacter(Character character) {
     if (characters.length < 4 && !characters.contains(character)) {
       characters.add(character);
+      _syncCharacterResources(character);
       print(
         '✓ Character added: ${character.characterClass.name} (class: ${character.characterClass}) (${characters.length}/4)',
       );
@@ -241,6 +245,7 @@ class GameState {
 
   /// Move a character to a new position
   bool moveCharacter(Character character, Vector2 newPosition) {
+    _syncCharacterResources(character);
     // Validate it's this character's turn
     if (currentTurnCharacter != character) {
       print('⚠ Not ${character.name}\'s turn!');
@@ -316,6 +321,75 @@ class GameState {
       print('--- Turn $turnNumber ---');
     }
     print('Current turn: ${currentTurnCharacter?.name ?? "Unknown"}');
+  }
+
+  int clampNonNegative(int value) {
+    return value < minResourceValue ? minResourceValue : value;
+  }
+
+  int clampInstability(int value) {
+    return value.clamp(minResourceValue, maxInstability).toInt();
+  }
+
+  InstabilityTier instabilityTierFor(int value) {
+    final normalized = clampInstability(value);
+    if (normalized <= 3) {
+      return InstabilityTier.stable;
+    }
+    if (normalized <= 6) {
+      return InstabilityTier.volatile;
+    }
+    if (normalized <= 9) {
+      return InstabilityTier.critical;
+    }
+    return InstabilityTier.cataclysmic;
+  }
+
+  InstabilityTier get currentInstabilityTier {
+    return instabilityTierFor(instability.value);
+  }
+
+  PlayerResourceState? playerStateForCharacter(Character character) {
+    return playerResources[character.nfcTagId];
+  }
+
+  PlayerResourceState playerStateFor(Character character) {
+    return playerResources.putIfAbsent(
+      character.nfcTagId,
+      () => PlayerResourceState.fromCharacter(character),
+    );
+  }
+
+  void applyTeamResourceDelta({
+    required Character character,
+    int energyDelta = 0,
+    int objectiveDelta = 0,
+    int instabilityDelta = 0,
+  }) {
+    _syncCharacterResources(character);
+    final currentPlayerState = playerStateFor(character);
+    playerResources[character.nfcTagId] = currentPlayerState.copyWith(
+      hp: clampNonNegative(character.health),
+      maxHp: clampNonNegative(character.maxHealth),
+      energy: clampNonNegative(currentPlayerState.energy + energyDelta),
+    );
+
+    objectiveProgress = objectiveProgress.copyWith(
+      current: clampNonNegative(objectiveProgress.current + objectiveDelta),
+    );
+
+    instability = instability.copyWith(
+      value: clampInstability(instability.value + instabilityDelta),
+    );
+  }
+
+  void _syncCharacterResources(Character character) {
+    final previous = playerResources[character.nfcTagId];
+    playerResources[character.nfcTagId] = PlayerResourceState(
+      hp: clampNonNegative(character.health),
+      maxHp: clampNonNegative(character.maxHealth),
+      energy: previous?.energy ?? 0,
+    );
   }
 
   /// Start the game (after character selection)
@@ -516,6 +590,82 @@ class GameState {
 
     print('✓ Synced $mappedFields field UUIDs to grid tiles');
     return true;
+  }
+}
+
+class PlayerResourceState {
+  final int hp;
+  final int maxHp;
+  final int energy;
+
+  const PlayerResourceState({
+    required this.hp,
+    required this.maxHp,
+    required this.energy,
+  });
+
+  factory PlayerResourceState.fromCharacter(Character character) {
+    return PlayerResourceState(
+      hp: character.health,
+      maxHp: character.maxHealth,
+      energy: 0,
+    );
+  }
+
+  PlayerResourceState copyWith({
+    int? hp,
+    int? maxHp,
+    int? energy,
+  }) {
+    return PlayerResourceState(
+      hp: hp ?? this.hp,
+      maxHp: maxHp ?? this.maxHp,
+      energy: energy ?? this.energy,
+    );
+  }
+}
+
+class TeamObjectiveProgress {
+  final int current;
+  final int target;
+
+  const TeamObjectiveProgress({this.current = 0, this.target = 10});
+
+  TeamObjectiveProgress copyWith({int? current, int? target}) {
+    return TeamObjectiveProgress(
+      current: current ?? this.current,
+      target: target ?? this.target,
+    );
+  }
+}
+
+class GlobalInstability {
+  final int value;
+
+  const GlobalInstability({this.value = 0});
+
+  GlobalInstability copyWith({int? value}) {
+    return GlobalInstability(value: value ?? this.value);
+  }
+}
+
+enum InstabilityTier {
+  stable,
+  volatile,
+  critical,
+  cataclysmic;
+
+  String get label {
+    switch (this) {
+      case InstabilityTier.stable:
+        return 'Stable';
+      case InstabilityTier.volatile:
+        return 'Volatile';
+      case InstabilityTier.critical:
+        return 'Critical';
+      case InstabilityTier.cataclysmic:
+        return 'Cataclysmic';
+    }
   }
 }
 

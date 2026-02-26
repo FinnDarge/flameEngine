@@ -306,6 +306,92 @@ class _GameplayScreenState extends State<GameplayScreen> {
     );
   }
 
+
+  Widget _buildResourceHud(GameState gameState, Character? localCharacter) {
+    final localResources = localCharacter != null
+        ? (gameState.playerStateForCharacter(localCharacter) ??
+            PlayerResourceState.fromCharacter(localCharacter))
+        : null;
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        _buildHudChip(
+          label: 'HP',
+          value: localResources == null
+              ? '--'
+              : '${localResources.hp}/${localResources.maxHp}',
+          icon: Icons.favorite,
+          color: Colors.redAccent,
+        ),
+        _buildHudChip(
+          label: 'Energy',
+          value: localResources?.energy.toString() ?? '--',
+          icon: Icons.bolt,
+          color: Colors.amber,
+        ),
+        _buildHudChip(
+          label: 'Objective',
+          value:
+              '${gameState.objectiveProgress.current}/${gameState.objectiveProgress.target}',
+          icon: Icons.flag,
+          color: Colors.lightGreenAccent,
+        ),
+        _buildHudChip(
+          label: 'Instability',
+          value:
+              '${gameState.instability.value}/10 (${gameState.currentInstabilityTier.label})',
+          icon: Icons.warning_amber_rounded,
+          color: _instabilityTierColor(gameState.currentInstabilityTier),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHudChip({
+    required String label,
+    required String value,
+    required IconData icon,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1a1a1a),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.65)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 16),
+          const SizedBox(width: 6),
+          Text(
+            '$label: $value',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _instabilityTierColor(InstabilityTier tier) {
+    switch (tier) {
+      case InstabilityTier.stable:
+        return Colors.greenAccent;
+      case InstabilityTier.volatile:
+        return Colors.amberAccent;
+      case InstabilityTier.critical:
+        return Colors.orangeAccent;
+      case InstabilityTier.cataclysmic:
+        return Colors.redAccent;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final phase = widget.gameState.phase;
@@ -352,12 +438,15 @@ class _GameplayScreenState extends State<GameplayScreen> {
                 ),
                 const SizedBox(height: 8),
                 // Turn Status
-                if (phase == GamePhase.playing)
+                if (phase == GamePhase.playing) ...[
                   _buildTurnStatus(
                     widget.gameState.isLocalPlayerTurn,
                     currentTurn,
                     player.character,
                   ),
+                  const SizedBox(height: 8),
+                  _buildResourceHud(widget.gameState, player.character),
+                ],
                 // Start Game button for session owner
                 if (phase == GamePhase.characterSelection && isSessionOwner)
                   Padding(

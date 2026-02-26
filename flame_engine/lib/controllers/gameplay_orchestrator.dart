@@ -140,7 +140,7 @@ class GameplayOrchestrator {
 
     if (tile.event == null) {
       final resolved = _tileEventResolver.resolve(
-        instability: gameState.eventInstability,
+        instability: gameState.instability.value,
         eventType: tile.enemy != null ? TileEventType.encounter : null,
       );
       if (resolved != null) {
@@ -217,9 +217,12 @@ class GameplayOrchestrator {
       }
     }
 
-    gameState.eventEnergy += delta.energy;
-    gameState.eventObjective += delta.credits;
-    gameState.eventInstability += delta.instability;
+    gameState.applyTeamResourceDelta(
+      character: character,
+      energyDelta: delta.energy,
+      objectiveDelta: delta.credits,
+      instabilityDelta: delta.instability,
+    );
 
     tile.event = event.copyWith(isCompleted: true);
     _log('Event reducer applied choice "$choiceId" for event ${event.id}.');
