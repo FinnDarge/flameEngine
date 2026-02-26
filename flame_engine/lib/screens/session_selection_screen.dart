@@ -39,6 +39,7 @@ class _SessionSelectionScreenState extends State<SessionSelectionScreen> {
 
   // ── Join session ──────────────────────────────────────────────────────────
   final _joinCodeController = TextEditingController();
+  final FocusNode _joinCodeFocusNode = FocusNode();
   bool _joining = false;
   String? _joinError;
   String? _joinedCode; // confirmation display
@@ -57,6 +58,7 @@ class _SessionSelectionScreenState extends State<SessionSelectionScreen> {
   @override
   void dispose() {
     _joinCodeController.dispose();
+    _joinCodeFocusNode.dispose();
     super.dispose();
   }
 
@@ -103,6 +105,7 @@ class _SessionSelectionScreenState extends State<SessionSelectionScreen> {
   }
 
   Future<void> _confirmCreate() async {
+    FocusManager.instance.primaryFocus?.unfocus();
     await widget.onSessionReady();
   }
 
@@ -138,7 +141,10 @@ class _SessionSelectionScreenState extends State<SessionSelectionScreen> {
     }
   }
 
-  Future<void> _confirmJoin() => widget.onSessionReady();
+  Future<void> _confirmJoin() async {
+    FocusManager.instance.primaryFocus?.unfocus();
+    await widget.onSessionReady();
+  }
 
   // ── Build ─────────────────────────────────────────────────────────────────
 
@@ -290,6 +296,7 @@ class _SessionSelectionScreenState extends State<SessionSelectionScreen> {
                   children: [
                     TextField(
                       controller: _joinCodeController,
+                      focusNode: _joinCodeFocusNode,
                       enabled: _hasPlayer && _joinedCode == null,
                       onChanged: (_) => setState(() => _joinError = null),
                       textCapitalization: TextCapitalization.characters,

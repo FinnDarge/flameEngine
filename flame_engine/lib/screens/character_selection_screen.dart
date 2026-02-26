@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import '../models/character.dart';
 import '../models/game_state.dart';
 import '../services/nfc_service.dart' show NFCService, kMockNfc;
 import '../controllers/session_flow_controller.dart';
-import '../services/session_api_service.dart' show ApiRole;
+import '../services/session_api_service.dart' show ApiRole, SessionPlayer;
 import '../widgets/token_and_board_app_bar.dart';
 import '../widgets/session_info_footer.dart';
 
@@ -30,6 +31,13 @@ class CharacterSelectionScreen extends StatefulWidget {
 }
 
 class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
+  static const List<String> _frontendRoles = [
+    'Vanguard',
+    'Controller',
+    'Striker',
+    'Engineer',
+  ];
+
   bool nfcAvailable = false;
   String nfcStatus = 'Initialising NFC...';
   String? _scannedTagId;
@@ -46,6 +54,35 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
   bool _hasJoined = false; // Track if user has already joined the session
   String? _joinError;
   String? _joinedRoleUuid; // Track which role user joined with
+  Timer? _sessionPlayersRefreshTimer;
+
+  Map<String, ApiRole> _buildFrontendRoleMap(List<ApiRole> backendRoles) {
+    final mappedRoles = <String, ApiRole>{};
+    for (final role in backendRoles) {
+      final frontendRole = _mapBackendRoleToFrontendRole(role.name);
+      if (frontendRole != null && !mappedRoles.containsKey(frontendRole)) {
+        mappedRoles[frontendRole] = role;
+      }
+    }
+    return mappedRoles;
+  }
+
+  String? _mapBackendRoleToFrontendRole(String backendRoleName) {
+    final normalized = backendRoleName.trim().toLowerCase();
+    if (normalized.contains('vanguard') || normalized == 'red') {
+      return 'Vanguard';
+    }
+    if (normalized.contains('controller') || normalized == 'purple') {
+      return 'Controller';
+    }
+    if (normalized.contains('striker') || normalized == 'white') {
+      return 'Striker';
+    }
+    if (normalized.contains('engineer') || normalized == 'blue') {
+      return 'Engineer';
+    }
+    return null;
+  }
 
   /// Resolve a human-readable character name from a tag ID.
   /// Checks mock payload first, then falls back to CharacterClass enum.
@@ -63,8 +100,57 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      FocusManager.instance.primaryFocus?.unfocus();
+    });
     _initNFC();
     _loadAvailableRoles();
+    _startSessionPlayersRefreshTimer();
+  }
+
+  void _startSessionPlayersRefreshTimer() {
+    _sessionPlayersRefreshTimer?.cancel();
+    _sessionPlayersRefreshTimer = Timer.periodic(
+      const Duration(seconds: 5),
+      (_) {
+        _refreshSessionPlayers();
+      },
+    );
+  }
+
+  Future<void> _refreshSessionPlayers() async {
+    final sessionUuid = widget.gameState.sessionUuid;
+    if (sessionUuid == null) return;
+
+    try {
+      final players = await widget.sessionFlow.getSessionPlayers(sessionUuid);
+      final claimedUuids = players.map((p) => p.role).toList();
+      final localPlayerUuid = widget.gameState.localApiPlayer?.uuid;
+      SessionPlayer? localAssignment;
+      if (localPlayerUuid != null) {
+        for (final player in players) {
+          if (player.player == localPlayerUuid) {
+            localAssignment = player;
+            break;
+          }
+        }
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        widget.gameState.sessionPlayers = players;
+        _claimedRoleUuids = claimedUuids;
+        if (localAssignment != null) {
+          _hasJoined = true;
+          _joinedRoleUuid = localAssignment.role;
+          _highlightedRoleUuid ??= localAssignment.role;
+        }
+      });
+    } catch (_) {
+      // Keep existing values if refresh fails; next refresh will retry.
+    }
   }
 
   Future<void> _initNFC() async {
@@ -102,9 +188,10 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
 
       // Fetch claimed roles if we have a session
       List<String> claimedUuids = [];
+      List<SessionPlayer> sessionPlayers = [];
       if (sessionUuid != null) {
-        final players = await widget.sessionFlow.getSessionPlayers(sessionUuid);
-        claimedUuids = players.map((p) => p.role).toList();
+        sessionPlayers = await widget.sessionFlow.getSessionPlayers(sessionUuid);
+        claimedUuids = sessionPlayers.map((p) => p.role).toList();
       }
 
       // Check if user has already claimed a character
@@ -120,7 +207,8 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
 
         final characterClassName = character.characterClass.name;
         for (final role in roles) {
-          if (role.name.toLowerCase() == characterClassName.toLowerCase()) {
+          final mappedRoleName = _mapBackendRoleToFrontendRole(role.name);
+          if (mappedRoleName?.toLowerCase() == characterClassName.toLowerCase()) {
             restoredHighlightedRoleUuid = role.uuid;
             print(
               '🔄 Restored joined state: ${character.characterClass.name} -> ${role.name}',
@@ -132,6 +220,7 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
 
       setState(() {
         _availableRoles = roles;
+        widget.gameState.sessionPlayers = sessionPlayers;
         _claimedRoleUuids = claimedUuids;
         _loadingRoles = false;
 
@@ -203,7 +292,8 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
         // First try direct name match
         for (final role in _availableRoles) {
           print('   - Checking role: ${role.name} (${role.uuid})');
-          if (role.name.toLowerCase() == characterClassName.toLowerCase()) {
+          final mappedRoleName = _mapBackendRoleToFrontendRole(role.name);
+          if (mappedRoleName?.toLowerCase() == characterClassName.toLowerCase()) {
             highlightedRoleUuid = role.uuid;
             print(
               '✅ MATCHED! Character class "$characterClassName" to role "${role.name}" (${role.uuid})',
@@ -221,7 +311,8 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
 
           if (roleNameForPiece != null) {
             for (final role in _availableRoles) {
-              if (role.name.toLowerCase() == roleNameForPiece.toLowerCase()) {
+              final mappedRoleName = _mapBackendRoleToFrontendRole(role.name);
+              if (mappedRoleName?.toLowerCase() == roleNameForPiece.toLowerCase()) {
                 highlightedRoleUuid = role.uuid;
                 print(
                   '✅ MAPPED! Piece color "$characterClassName" -> role "${role.name}" (${role.uuid})',
@@ -288,6 +379,7 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
         gameState: widget.gameState,
         roleUuid: _highlightedRoleUuid!,
       );
+      await _refreshSessionPlayers();
 
       // Success - mark as joined and proceed to next screen
       if (mounted) {
@@ -299,6 +391,7 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
         widget.onCharacterSelected();
       }
     } catch (e) {
+      await _refreshSessionPlayers();
       setState(() {
         _joinError = 'Failed to join session: $e';
         _joiningSession = false;
@@ -343,14 +436,9 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
       );
       print('   Available roles count: ${_availableRoles.length}');
 
-      // Find the vanguard role
-      ApiRole? vanguardRole;
-      for (final role in _availableRoles) {
-        if (role.name.toLowerCase() == 'vanguard') {
-          vanguardRole = role;
-          break;
-        }
-      }
+      // Find the vanguard role after backend-to-frontend mapping
+      final frontendRoleMap = _buildFrontendRoleMap(_availableRoles);
+      final vanguardRole = frontendRoleMap['Vanguard'];
 
       if (vanguardRole == null) {
         print('❌ Vanguard role not found in available roles');
@@ -384,12 +472,21 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
 
   @override
   void dispose() {
+    _sessionPlayersRefreshTimer?.cancel();
     widget.nfcService.stopScanning();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final frontendRoleMap = _buildFrontendRoleMap(_availableRoles);
+    final selectedRoleClaimed = _highlightedRoleUuid != null &&
+        widget.gameState.sessionPlayers.any(
+          (sessionPlayer) => sessionPlayer.role == _highlightedRoleUuid,
+        );
+    final canContinue = _hasJoined ||
+        (_highlightedRoleUuid != null && !selectedRoleClaimed && !_joiningSession);
+
     return Scaffold(
       backgroundColor: const Color(0xFF1a1a1a),
       appBar: TokenAndBoardAppBar(onBackPressed: widget.onBack),
@@ -485,18 +582,42 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
                           mainAxisSpacing: 8,
                           crossAxisSpacing: 8,
                           childAspectRatio: 0.9,
-                          children: _availableRoles.map((role) {
-                            final isClaimed = _claimedRoleUuids.contains(
-                              role.uuid,
-                            );
-                            final isScanned = _highlightedRoleUuid ==
-                                role.uuid; // Determine colors based on state
+                          children: _frontendRoles.map((frontendRoleName) {
+                            final role = frontendRoleMap[frontendRoleName];
+                            final isAvailableInBackend = role != null;
+                            final isClaimed = role != null &&
+                                widget.gameState.sessionPlayers.any(
+                                  (sessionPlayer) =>
+                                      sessionPlayer.role == role.uuid,
+                                );
+                            final isScanned = role != null &&
+                                _highlightedRoleUuid == role.uuid;
+
+                            final occupiedBy = role == null
+                                ? null
+                                : widget.gameState.sessionPlayers
+                                    .where(
+                                      (sessionPlayer) =>
+                                          sessionPlayer.role == role.uuid,
+                                    )
+                                    .length;
+                            final roleUuid = role?.uuid;
+                            final isSelectable =
+                                !_hasJoined && roleUuid != null && !isClaimed;
+
+                            // Determine colors based on state
                             late Color backgroundColor;
                             late Color borderColor;
                             late Color textColor;
                             late Color iconColor;
 
-                            if (isScanned) {
+                            if (!isAvailableInBackend) {
+                              backgroundColor = Colors.grey.shade900
+                                  .withOpacity(0.45);
+                              borderColor = Colors.grey.shade700;
+                              textColor = Colors.grey.shade400;
+                              iconColor = Colors.grey.shade500;
+                            } else if (isScanned) {
                               // Scanned/claimed state
                               backgroundColor =
                                   Colors.yellow.shade900.withOpacity(0.5);
@@ -520,76 +641,106 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
                               iconColor = Colors.green.shade300;
                             }
 
-                            return Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: backgroundColor,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: borderColor,
-                                  width: isScanned ? 2 : 1.5,
-                                ),
-                              ),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  // Role image
-                                  Expanded(
-                                    child: Container(
-                                      margin: const EdgeInsets.only(bottom: 8),
-                                      child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(8),
-                                        child: _getRoleImagePath(role.name) !=
-                                                null
-                                            ? Image.asset(
-                                                _getRoleImagePath(role.name)!,
-                                                fit: BoxFit.cover,
-                                              )
-                                            : Icon(
-                                                Icons.person,
-                                                size: 40,
-                                                color: iconColor,
-                                              ),
-                                      ),
+                            return GestureDetector(
+                              onTap: isSelectable
+                                  ? () {
+                                      FocusManager.instance.primaryFocus
+                                          ?.unfocus();
+                                      setState(() {
+                                        _highlightedRoleUuid = roleUuid;
+                                        _joinError = null;
+                                        nfcStatus =
+                                            'Selected role: $frontendRoleName';
+                                      });
+                                    }
+                                  : null,
+                              child: AnimatedOpacity(
+                                duration: const Duration(milliseconds: 180),
+                                opacity: isSelectable || isScanned ? 1 : 0.8,
+                                child: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: backgroundColor,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: borderColor,
+                                      width: isScanned ? 2 : 1.5,
                                     ),
                                   ),
-                                  // Role name
-                                  Text(
-                                    role.name,
-                                    style: TextStyle(
-                                      color: textColor,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                  const SizedBox(height: 4),
-                                  // Status indicator
-                                  Row(
+                                  child: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
-                                    mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Icon(
-                                        isClaimed
-                                            ? Icons.lock_rounded
-                                            : Icons.lock_open_rounded,
-                                        size: 14,
-                                        color: iconColor,
-                                      ),
-                                      const SizedBox(width: 3),
-                                      Text(
-                                        isScanned
-                                            ? 'Claimed'
-                                            : (isClaimed ? 'Taken' : 'Free'),
-                                        style: TextStyle(
-                                          color: Colors.white.withOpacity(0.7),
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.w500,
+                                      // Role image
+                                      Expanded(
+                                        child: Container(
+                                          margin:
+                                              const EdgeInsets.only(bottom: 8),
+                                          child: ClipRRect(
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                            child: _getRoleImagePath(
+                                                      frontendRoleName,
+                                                    ) !=
+                                                    null
+                                                ? Image.asset(
+                                                    _getRoleImagePath(
+                                                      frontendRoleName,
+                                                    )!,
+                                                    fit: BoxFit.cover,
+                                                  )
+                                                : Icon(
+                                                    Icons.person,
+                                                    size: 40,
+                                                    color: iconColor,
+                                                  ),
+                                          ),
                                         ),
+                                      ),
+                                      // Role name
+                                      Text(
+                                        frontendRoleName,
+                                        style: TextStyle(
+                                          color: textColor,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                      const SizedBox(height: 4),
+                                      // Status indicator
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            isClaimed
+                                                ? Icons.lock_rounded
+                                                : Icons.lock_open_rounded,
+                                            size: 14,
+                                            color: iconColor,
+                                          ),
+                                          const SizedBox(width: 3),
+                                          Text(
+                                            !isAvailableInBackend
+                                                ? 'Unavailable'
+                                                : (isScanned
+                                                    ? 'Claimed'
+                                                    : (isClaimed
+                                                        ? 'Taken${occupiedBy != null ? ' ($occupiedBy)' : ''}'
+                                                        : 'Free')),
+                                            style: TextStyle(
+                                              color:
+                                                  Colors.white.withOpacity(0.7),
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ],
                                   ),
-                                ],
+                                ),
                               ),
                             );
                           }).toList(),
@@ -638,11 +789,7 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
                       ),
                     ],
                     ElevatedButton.icon(
-                      onPressed: (_hasJoined ||
-                              (_highlightedRoleUuid != null &&
-                                  !_joiningSession))
-                          ? _onContinue
-                          : null,
+                      onPressed: canContinue ? _onContinue : null,
                       icon: _joiningSession
                           ? const SizedBox(
                               width: 16,
@@ -657,11 +804,8 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
                           : const Icon(Icons.check),
                       label: const Text('Continue'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: (_hasJoined ||
-                                (_highlightedRoleUuid != null &&
-                                    !_joiningSession))
-                            ? Colors.green
-                            : Colors.grey.shade700,
+                        backgroundColor:
+                            canContinue ? Colors.green : Colors.grey.shade700,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 32,
                           vertical: 12,
