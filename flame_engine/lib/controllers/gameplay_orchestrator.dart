@@ -12,12 +12,14 @@ class GameplayOrchestrator {
   final GameState gameState;
   final void Function(Character character) refreshBoardAfterMovement;
   final void Function(int row, int col) completeEvent;
+  final void Function(int row, int col, TileEvent event)? promptEventResolution;
   final List<String> _timeline = [];
 
   GameplayOrchestrator({
     required this.gameState,
     required this.refreshBoardAfterMovement,
     required this.completeEvent,
+    this.promptEventResolution,
   });
 
   Future<void> onFieldActivated(String fieldId, TileInputSource source) async {
@@ -148,8 +150,8 @@ class GameplayOrchestrator {
     }
 
     if (context.tile.event != null && !context.tile.event!.isCompleted) {
-      completeEvent(context.row, context.col);
-      _log('Reducer completed tile event on (${context.row}, ${context.col}).');
+      promptEventResolution?.call(context.row, context.col, context.tile.event!);
+      _log('Queued event resolution UI for tile (${context.row}, ${context.col}).');
     }
 
     _log('Reducer applied movement state changes.');

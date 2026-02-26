@@ -7,11 +7,13 @@ import 'tile_component.dart';
 class GridComponent extends PositionComponent {
   final GameGrid grid;
   final double cellSize;
+  final void Function(int row, int col)? onTileTapped;
   final List<List<TileComponent>> tileComponents = [];
 
   GridComponent({
     required this.grid,
     this.cellSize = 100.0,
+    this.onTileTapped,
   }) : super(
           size: Vector2(
             grid.columns * cellSize,
@@ -47,6 +49,9 @@ class GridComponent extends PositionComponent {
         final tileComponent = TileComponent(
           tile: tile,
           cellSize: cellSize,
+          row: row,
+          col: col,
+          onTileTapped: onTileTapped,
           position: Vector2(
             col * cellSize,
             row * cellSize,

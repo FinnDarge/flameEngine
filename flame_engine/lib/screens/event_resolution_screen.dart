@@ -31,7 +31,14 @@ class EventResolutionViewModel {
       eventId: event.id,
       title: event.title,
       flavor: event.flavor,
-      choices: event.choices
+      choices: (event.choices.isNotEmpty
+              ? event.choices
+              : [
+                  const TileEventChoice(
+                    id: 'continue',
+                    label: 'Continue',
+                  ),
+                ])
           .map(
             (choice) => EventResolutionChoiceViewModel(
               id: choice.id,

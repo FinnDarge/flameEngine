@@ -17,6 +17,7 @@ class DungeonGame extends FlameGame {
   late GameState gameState;
   late final GameplayOrchestrator gameplayOrchestrator;
   GridComponent? gridComponent;
+  void Function(int row, int col, TileEvent event)? onPendingEventResolution;
 
   // Track character sprite components
   final Map<Character, CharacterSpriteComponent> characterSprites = {};
@@ -53,6 +54,7 @@ class DungeonGame extends FlameGame {
       gameState: gameState,
       refreshBoardAfterMovement: refreshBoardAfterMovement,
       completeEvent: completeEvent,
+      promptEventResolution: _promptEventResolution,
     );
   }
 
@@ -73,6 +75,7 @@ class DungeonGame extends FlameGame {
     gridComponent = GridComponent(
       grid: gameState.grid,
       cellSize: cellSize,
+      onTileTapped: _handleVirtualTileTap,
     );
 
     await add(gridComponent!);
@@ -93,6 +96,16 @@ class DungeonGame extends FlameGame {
     _remoteSyncTimer?.cancel();
     _remoteSyncTimer = null;
     super.onRemove();
+  }
+
+
+  void _handleVirtualTileTap(int row, int col) {
+    final tileId = 'cell_${row + 1}_${col + 1}';
+    handleNFCTag(tileId, null, source: TileInputSource.mockTap);
+  }
+
+  void _promptEventResolution(int row, int col, TileEvent event) {
+    onPendingEventResolution?.call(row, col, event);
   }
 
   /// Handle NFC tag detection
