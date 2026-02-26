@@ -223,6 +223,9 @@ class DungeonGame extends FlameGame {
       final sessionPlayers =
           await sessionApi.getSessionPlayers(gameState.sessionUuid!);
 
+      // Store session players in game state
+      gameState.sessionPlayers = List.unmodifiable(sessionPlayers);
+
       print('✓ Loaded ${sessionPlayers.length} session player(s)');
 
       // For each session player that isn't the local player, create a character

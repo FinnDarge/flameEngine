@@ -6,12 +6,14 @@ import '../widgets/token_and_board_app_bar.dart';
 /// Screen shown at startup — single entry point to create/join an online game.
 class ScenarioSelectionScreen extends StatelessWidget {
   final GameState gameState;
+  final bool serverOffline;
   final VoidCallback onScenarioSelected;
 
   const ScenarioSelectionScreen({
     super.key,
     required this.gameState,
     required this.onScenarioSelected,
+    this.serverOffline = false,
   });
 
   void _startOnlineGame() {
@@ -44,9 +46,9 @@ class ScenarioSelectionScreen extends StatelessWidget {
             Text(
               'Token & Board Adventures',
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
@@ -54,6 +56,42 @@ class ScenarioSelectionScreen extends StatelessWidget {
               'Ready to play? Start a new online game.',
               style: TextStyle(color: Colors.white70, fontSize: 14),
               textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            // Server status indicator (below the "Ready to play" text)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: serverOffline
+                        ? Colors.red.shade400
+                        : Colors.green.shade400,
+                    boxShadow: [
+                      BoxShadow(
+                        color: (serverOffline ? Colors.red : Colors.green)
+                            .shade400,
+                        blurRadius: 4,
+                        spreadRadius: 1,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  serverOffline ? 'Backend Offline' : 'Backend Online',
+                  style: TextStyle(
+                    color: serverOffline
+                        ? Colors.red.shade400
+                        : Colors.green.shade400,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 24),
             // Single action card
@@ -92,9 +130,9 @@ class ScenarioSelectionScreen extends StatelessWidget {
                       Text(
                         'Online Game',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
                       ),
                       const SizedBox(height: 8),
                       const Text(

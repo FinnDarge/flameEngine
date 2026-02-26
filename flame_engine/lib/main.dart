@@ -191,64 +191,6 @@ class _GameNavigatorState extends State<GameNavigator> {
       );
     }
 
-    // Show offline message if server is offline
-    if (_serverOffline) {
-      return Scaffold(
-        backgroundColor: Color(0xFF1a1a1a),
-        appBar: AppBar(
-          backgroundColor: Colors.red.shade900,
-          title: const Text('Server Offline'),
-          centerTitle: true,
-        ),
-        body: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.cloud_off,
-                size: 80,
-                color: Colors.red.shade400,
-              ),
-              const SizedBox(height: 20),
-              Text(
-                'Game Server is Offline',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                'Unable to connect to the game server.',
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 16,
-                ),
-              ),
-              const SizedBox(height: 30),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.refresh),
-                label: const Text('Retry'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepPurple,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                ),
-                onPressed: () {
-                  setState(() {
-                    _apiLoading = true;
-                    _serverOffline = false;
-                  });
-                  _loadApiThenStart();
-                },
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
     return StreamBuilder<GamePhase>(
       stream: _createPhaseStream(),
       builder: (context, snapshot) {
@@ -257,6 +199,7 @@ class _GameNavigatorState extends State<GameNavigator> {
         if (phase == GamePhase.scenarioSelection) {
           return ScenarioSelectionScreen(
             gameState: game.gameState,
+            serverOffline: _serverOffline,
             onScenarioSelected: _onScenarioSelected,
           );
         } else if (phase == GamePhase.sessionSelection) {

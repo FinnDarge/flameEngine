@@ -12,6 +12,7 @@ import '../services/management_api_service.dart'
         ApiGame,
         ApiGamePiece,
         ManagementApiService;
+import '../services/session_api_service.dart' show SessionPlayer;
 import '../utils/sample_items.dart';
 
 /// Manages the overall game state
@@ -69,6 +70,9 @@ class GameState {
 
   /// The ApiPlayer that represents the local user (carries the x-user-key).
   ApiPlayer? localApiPlayer;
+
+  /// Session players (all players in the current session with their roles).
+  List<SessionPlayer> sessionPlayers = const [];
 
   GameState({required this.grid, Vector2? goal})
       : goalPosition = goal ??
