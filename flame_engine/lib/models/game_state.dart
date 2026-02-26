@@ -19,6 +19,7 @@ import '../utils/sample_items.dart';
 class GameState {
   static const int minResourceValue = 0;
   static const int maxInstability = 10;
+  static const int instabilityPerCompletedRound = 1;
 
   /// The UUID of the session creator (owner)
   String? sessionCreatorUuid;
@@ -43,12 +44,15 @@ class GameState {
 
   /// Turn number
   int turnNumber = 1;
+  int _turnsTakenThisRound = 0;
 
 
   /// Normalized gameplay resources used by reducers/UI.
   final Map<String, PlayerResourceState> playerResources = {};
   TeamObjectiveProgress objectiveProgress = const TeamObjectiveProgress();
   GlobalInstability instability = const GlobalInstability();
+  EndgameSummary? endgameSummary;
+  bool bossPhaseCompleted = false;
 
   /// Goal position
   final Vector2 goalPosition;
@@ -107,7 +111,22 @@ class GameState {
   /// Get character whose turn it is
   Character? get currentTurnCharacter {
     if (characters.isEmpty) return null;
-    return characters[currentTurnIndex % characters.length];
+    final current = characters[currentTurnIndex % characters.length];
+    if (!current.isDefeated) {
+      return current;
+    }
+
+    final nextIndex = _findNextActiveCharacterIndex(
+      fromIndex: currentTurnIndex,
+    );
+    if (nextIndex == null) {
+      return null;
+    }
+    return characters[nextIndex];
+  }
+
+  List<Character> get activeCharacters {
+    return characters.where((character) => !character.isDefeated).toList();
   }
 
   /// Check if it's the local player's turn
@@ -313,14 +332,62 @@ class GameState {
   }
 
   /// Advance to next turn
-  void nextTurn() {
-    if (characters.isEmpty) return;
-    currentTurnIndex++;
-    if (currentTurnIndex % characters.length == 0) {
-      turnNumber++;
-      print('--- Turn $turnNumber ---');
+  TurnAdvanceResult nextTurn() {
+    if (characters.isEmpty) {
+      return const TurnAdvanceResult();
     }
+
+    final active = activeCharacters;
+    if (active.isEmpty) {
+      return const TurnAdvanceResult();
+    }
+
+    final nextIndex = _findNextActiveCharacterIndex(
+      fromIndex: currentTurnIndex,
+    );
+    if (nextIndex == null) {
+      return const TurnAdvanceResult();
+    }
+
+    currentTurnIndex = nextIndex;
+    _turnsTakenThisRound++;
+
+    var roundCompleted = false;
+    var instabilityDelta = 0;
+    if (_turnsTakenThisRound >= active.length) {
+      _turnsTakenThisRound = 0;
+      turnNumber++;
+      roundCompleted = true;
+      instabilityDelta = instabilityPerCompletedRound;
+      instability = instability.copyWith(
+        value: clampInstability(instability.value + instabilityDelta),
+      );
+      print('--- Turn $turnNumber ---');
+      print(
+        '⚠ Instability increased by $instabilityDelta after all active turns. Current: ${instability.value}/$maxInstability',
+      );
+    }
+
     print('Current turn: ${currentTurnCharacter?.name ?? "Unknown"}');
+    return TurnAdvanceResult(
+      roundCompleted: roundCompleted,
+      instabilityDelta: instabilityDelta,
+    );
+  }
+
+  int? _findNextActiveCharacterIndex({required int fromIndex}) {
+    if (characters.isEmpty) {
+      return null;
+    }
+
+    for (var offset = 1; offset <= characters.length; offset++) {
+      final candidate = (fromIndex + offset) % characters.length;
+      if (!characters[candidate].isDefeated) {
+        return candidate;
+      }
+    }
+
+    return null;
   }
 
   int clampNonNegative(int value) {
@@ -402,6 +469,11 @@ class GameState {
     phase = GamePhase.playing;
     currentTurnIndex = 0;
     turnNumber = 1;
+    _turnsTakenThisRound = 0;
+    endgameSummary = null;
+    bossPhaseCompleted = false;
+    objectiveProgress = const TeamObjectiveProgress();
+    instability = const GlobalInstability();
 
     // Clear all character positions on tiles first
     for (int row = 0; row < grid.rows; row++) {
@@ -529,11 +601,24 @@ class GameState {
 
   /// Check victory condition
   bool checkVictory() {
-    // All characters must reach the goal
-    return characters.every(
-      (char) =>
-          char.position.x == goalPosition.x &&
-          char.position.y == goalPosition.y,
+    final objectiveReached =
+        objectiveProgress.current >= objectiveProgress.target;
+    return objectiveReached || bossPhaseCompleted;
+  }
+
+  void setEndgameSummary({
+    required bool isVictory,
+    required String title,
+    required String reason,
+  }) {
+    endgameSummary = EndgameSummary(
+      isVictory: isVictory,
+      title: title,
+      reason: reason,
+      turnNumber: turnNumber,
+      instability: instability.value,
+      objectiveValue: objectiveProgress.current,
+      objectiveTarget: objectiveProgress.target,
     );
   }
 
@@ -678,5 +763,36 @@ enum GamePhase {
   characterStartPlacement,
   playing,
   victory,
+  gameOver,
   defeat,
+}
+
+class TurnAdvanceResult {
+  final bool roundCompleted;
+  final int instabilityDelta;
+
+  const TurnAdvanceResult({
+    this.roundCompleted = false,
+    this.instabilityDelta = 0,
+  });
+}
+
+class EndgameSummary {
+  final bool isVictory;
+  final String title;
+  final String reason;
+  final int turnNumber;
+  final int instability;
+  final int objectiveValue;
+  final int objectiveTarget;
+
+  const EndgameSummary({
+    required this.isVictory,
+    required this.title,
+    required this.reason,
+    required this.turnNumber,
+    required this.instability,
+    required this.objectiveValue,
+    required this.objectiveTarget,
+  });
 }

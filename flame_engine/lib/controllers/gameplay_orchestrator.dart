@@ -171,17 +171,53 @@ class GameplayOrchestrator {
   }
 
   void _advanceTurnAndRound() {
-    gameState.nextTurn();
+    final turnResult = gameState.nextTurn();
     _log('Turn advanced to ${gameState.turnNumber}.');
+    if (turnResult.roundCompleted && turnResult.instabilityDelta > 0) {
+      _log(
+        'Round complete for all active players. Instability +${turnResult.instabilityDelta} => ${gameState.instability.value}/${GameState.maxInstability}.',
+      );
+    }
   }
 
   void _checkEndgame() {
+    if (gameState.instability.value >= GameState.maxInstability) {
+      gameState.phase = GamePhase.gameOver;
+      gameState.setEndgameSummary(
+        isVictory: false,
+        title: 'Mission Failed',
+        reason:
+            'Global instability reached ${gameState.instability.value}/${GameState.maxInstability}.',
+      );
+      _log('Endgame check: defeat reached (instability threshold exceeded).');
+      return;
+    }
+
+    if (gameState.activeCharacters.isEmpty) {
+      gameState.phase = GamePhase.gameOver;
+      gameState.setEndgameSummary(
+        isVictory: false,
+        title: 'Squad Eliminated',
+        reason: 'All active players are defeated.',
+      );
+      _log('Endgame check: defeat reached (all characters defeated).');
+      return;
+    }
+
     if (!gameState.checkVictory()) {
       _log('Endgame check: game continues.');
       return;
     }
 
     gameState.phase = GamePhase.victory;
+    final victoryReason = gameState.bossPhaseCompleted
+        ? 'Boss phase has been completed.'
+        : 'Objective threshold reached (${gameState.objectiveProgress.current}/${gameState.objectiveProgress.target}).';
+    gameState.setEndgameSummary(
+      isVictory: true,
+      title: 'Mission Success',
+      reason: victoryReason,
+    );
     _log('Endgame check: victory reached.');
   }
 
