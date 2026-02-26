@@ -341,6 +341,10 @@ class DungeonGame extends FlameGame {
     gameState.phase = GamePhase.characterSelection;
     gameState.currentTurnIndex = 0;
     gameState.turnNumber = 1;
+    gameState.objectiveProgress = const TeamObjectiveProgress();
+    gameState.instability = const GlobalInstability();
+    gameState.endgameSummary = null;
+    gameState.bossPhaseCompleted = false;
   }
 
   /// Start the timer to periodically sync remote player positions

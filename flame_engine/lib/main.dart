@@ -12,6 +12,7 @@ import 'screens/session_selection_screen.dart';
 import 'screens/character_selection_screen.dart';
 import 'screens/character_start_placement_screen.dart';
 import 'screens/gameplay_screen.dart';
+import 'screens/endgame_summary_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -238,7 +239,7 @@ class _GameNavigatorState extends State<GameNavigator> {
             onReady: _onStartPlacementReady,
             onBack: _onStartPlacementBack,
           );
-        } else {
+        } else if (phase == GamePhase.playing) {
           return GameplayScreen(
             game: game,
             gameState: game.gameState,
@@ -247,6 +248,18 @@ class _GameNavigatorState extends State<GameNavigator> {
             onGameEnd: _onGameEnd,
             sessionFlow: _sessionFlow,
             onBack: _onGameplayBack,
+          );
+        } else if (phase == GamePhase.victory || phase == GamePhase.gameOver) {
+          final summary = game.gameState.endgameSummary;
+          if (summary == null) {
+            return const Scaffold(
+              body: Center(child: Text('Missing endgame summary data.')),
+            );
+          }
+          return EndgameSummaryScreen(summary: summary, onContinue: _onGameEnd);
+        } else {
+          return const Scaffold(
+            body: Center(child: Text('Unsupported game phase.')),
           );
         }
       },
