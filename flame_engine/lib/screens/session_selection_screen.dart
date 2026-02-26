@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../controllers/session_flow_controller.dart';
 import '../models/game_state.dart';
-import '../services/session_api_service.dart';
 import '../services/management_api_service.dart' show ApiPlayer, ApiGame;
 import '../widgets/token_and_board_app_bar.dart';
 
@@ -11,14 +11,14 @@ import '../widgets/token_and_board_app_bar.dart';
 /// user must first identify which registered player they are.
 class SessionSelectionScreen extends StatefulWidget {
   final GameState gameState;
-  final SessionApiService sessionApi;
-  final VoidCallback onSessionReady;
+  final SessionFlowController sessionFlow;
+  final Future<void> Function() onSessionReady;
   final VoidCallback onBack;
 
   const SessionSelectionScreen({
     super.key,
     required this.gameState,
-    required this.sessionApi,
+    required this.sessionFlow,
     required this.onSessionReady,
     required this.onBack,
   });
@@ -85,16 +85,11 @@ class _SessionSelectionScreenState extends State<SessionSelectionScreen> {
       _createdJoinCode = null;
     });
     try {
-      final result = await widget.sessionApi.createSession(
-        gameUuid: _selectedGame!.uuid,
-        userKey: _selectedPlayer!.accessToken,
+      final result = await widget.sessionFlow.createSession(
+        gameState: widget.gameState,
+        player: _selectedPlayer!,
+        game: _selectedGame!,
       );
-      widget.gameState
-        ..sessionUuid = result.uuid
-        ..sessionId = result.joinCode
-        ..localApiPlayer = _selectedPlayer
-        ..selectedApiGame = _selectedGame
-        ..sessionCreatorUuid = _selectedPlayer?.uuid;
       setState(() {
         _createdJoinCode = result.joinCode;
         _creating = false;
@@ -108,7 +103,7 @@ class _SessionSelectionScreenState extends State<SessionSelectionScreen> {
   }
 
   Future<void> _confirmCreate() async {
-    widget.onSessionReady();
+    await widget.onSessionReady();
   }
 
   // ── Join ──────────────────────────────────────────────────────────────────
@@ -123,27 +118,15 @@ class _SessionSelectionScreenState extends State<SessionSelectionScreen> {
       _joinedSessionClaimedRoleUuids = [];
     });
     try {
-      final detail = await widget.sessionApi.getSessionByJoinCode(code);
-
-      // Find the game from the session's game UUID
-      final game = widget.gameState.apiGames.firstWhere(
-        (g) => g.uuid == detail.game,
-        orElse: () => null as dynamic,
-      ) as ApiGame?;
-
-      widget.gameState
-        ..sessionUuid = detail.uuid
-        ..sessionId = detail.joinCode
-        ..localApiPlayer = _selectedPlayer
-        ..selectedApiGame = game
-        ..sessionCreatorUuid = detail.creator;
-
-      // Fetch the claimed roles for reference
-      final players = await widget.sessionApi.getSessionPlayers(detail.uuid);
-      final claimedUuids = players.map((p) => p.role).toList();
+      final joined = await widget.sessionFlow.joinSessionByCode(
+        gameState: widget.gameState,
+        player: _selectedPlayer!,
+        joinCode: code,
+      );
+      final claimedUuids = joined.players.map((p) => p.role).toList();
 
       setState(() {
-        _joinedCode = detail.joinCode;
+        _joinedCode = joined.detail.joinCode;
         _joinedSessionClaimedRoleUuids = claimedUuids;
         _joining = false;
       });
@@ -155,7 +138,7 @@ class _SessionSelectionScreenState extends State<SessionSelectionScreen> {
     }
   }
 
-  void _confirmJoin() => widget.onSessionReady();
+  Future<void> _confirmJoin() => widget.onSessionReady();
 
   // ── Build ─────────────────────────────────────────────────────────────────
 
@@ -275,7 +258,7 @@ class _SessionSelectionScreenState extends State<SessionSelectionScreen> {
                         label: 'Continue',
                         icon: Icons.arrow_forward_rounded,
                         color: Colors.green.shade700,
-                        onPressed: _confirmCreate,
+                        onPressed: () => _confirmCreate(),
                       ),
                     ] else ...[
                       const SizedBox(height: 12),
@@ -407,7 +390,7 @@ class _SessionSelectionScreenState extends State<SessionSelectionScreen> {
                         label: 'Continue',
                         icon: Icons.arrow_forward_rounded,
                         color: Colors.green.shade700,
-                        onPressed: _confirmJoin,
+                        onPressed: () => _confirmJoin(),
                       ),
                     ] else
                       _primaryButton(
