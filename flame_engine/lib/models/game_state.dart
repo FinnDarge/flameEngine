@@ -17,6 +17,9 @@ import '../utils/sample_items.dart';
 
 /// Manages the overall game state
 class GameState {
+  /// The UUID of the session creator (owner)
+  String? sessionCreatorUuid;
+
   /// The game grid
   final GameGrid grid;
 

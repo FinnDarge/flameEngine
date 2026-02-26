@@ -93,7 +93,8 @@ class _SessionSelectionScreenState extends State<SessionSelectionScreen> {
         ..sessionUuid = result.uuid
         ..sessionId = result.joinCode
         ..localApiPlayer = _selectedPlayer
-        ..selectedApiGame = _selectedGame;
+        ..selectedApiGame = _selectedGame
+        ..sessionCreatorUuid = _selectedPlayer?.uuid;
       setState(() {
         _createdJoinCode = result.joinCode;
         _creating = false;
@@ -134,7 +135,8 @@ class _SessionSelectionScreenState extends State<SessionSelectionScreen> {
         ..sessionUuid = detail.uuid
         ..sessionId = detail.joinCode
         ..localApiPlayer = _selectedPlayer
-        ..selectedApiGame = game;
+        ..selectedApiGame = game
+        ..sessionCreatorUuid = detail.creator;
 
       // Fetch the claimed roles for reference
       final players = await widget.sessionApi.getSessionPlayers(detail.uuid);

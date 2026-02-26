@@ -40,19 +40,9 @@ class _GameplayScreenState extends State<GameplayScreen> {
 
   bool get isSessionOwner {
     final local = widget.gameState.localApiPlayer;
-    final sessionPlayers = widget.gameState.sessionPlayers;
-    if (local == null || sessionPlayers.isEmpty) return false;
-    // Try to find the session creator from sessionPlayers
-    // If the local player is the first in the sessionPlayers list, treat as owner (fallback)
-    // If you have a better way to check, update here
-    // If session creator is available in gameState, use that
-    if (widget.gameState.sessionUuid != null) {
-      // Try to get session creator from SessionDetail if available
-      // (not currently stored in gameState, so fallback to localApiPlayer)
-      // TODO: If you add session creator to gameState, check here
-      return true; // fallback: always allow if sessionUuid is set and localApiPlayer exists
-    }
-    return false;
+    final creatorUuid = widget.gameState.sessionCreatorUuid;
+    if (local == null || creatorUuid == null) return false;
+    return local.uuid == creatorUuid;
   }
 
   Future<void> _handleStartGame() async {
@@ -264,6 +254,21 @@ class _GameplayScreenState extends State<GameplayScreen> {
     final player = widget.gameState.localPlayer;
     final currentTurn = widget.gameState.currentTurnCharacter;
 
+    final localPlayerUuid = widget.gameState.localApiPlayer?.uuid;
+    // Build a map of roleUuid to player name for all session players
+    final Map<String, String> roleToPlayerName = {
+      for (final sp in widget.gameState.sessionPlayers)
+        sp.role: (widget.gameState.apiPlayers
+                .firstWhere(
+                  (ap) => ap.uuid == sp.player,
+                  orElse: () => widget.gameState.apiPlayers.isNotEmpty
+                      ? widget.gameState.apiPlayers.first
+                      : null,
+                )
+                ?.name ??
+            'Unknown')
+    };
+
     return Scaffold(
       backgroundColor: const Color(0xFF1a1a1a),
       appBar: TokenAndBoardAppBar(onBackPressed: widget.onBack),
@@ -317,21 +322,78 @@ class _GameplayScreenState extends State<GameplayScreen> {
               ],
             ),
           ),
-          // Game widget
+          // Game widget and other players
           Expanded(
-            child: Stack(
+            child: Row(
               children: [
-                GameWidget(game: widget.game),
-                // Inventory overlay
-                if (showInventory)
-                  InventoryOverlay(
-                    player: player,
-                    onClose: () {
-                      setState(() {
-                        showInventory = false;
-                      });
-                    },
+                // Main game area
+                Expanded(
+                  child: Stack(
+                    children: [
+                      GameWidget(game: widget.game),
+                      // Inventory overlay
+                      if (showInventory)
+                        InventoryOverlay(
+                          player: player,
+                          onClose: () {
+                            setState(() {
+                              showInventory = false;
+                            });
+                          },
+                        ),
+                    ],
                   ),
+                ),
+                // Other players section
+                Container(
+                  width: 180,
+                  color: const Color(0xFF232b36),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.all(8.0),
+                        child: Text(
+                          'Other Players',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: ListView(
+                          children: widget.gameState.sessionPlayers
+                              .where((sp) => sp.player != localPlayerUuid)
+                              .map((sp) {
+                            final roleName = widget.gameState.gameStartPositions
+                                    .firstWhere(
+                                      (gp) =>
+                                          gp.role == sp.role &&
+                                          gp.roleName != null,
+                                      orElse: () => widget.gameState
+                                              .gameStartPositions.isNotEmpty
+                                          ? widget.gameState.gameStartPositions
+                                              .first
+                                          : null,
+                                    )
+                                    ?.roleName ??
+                                'Role';
+                            final playerName =
+                                roleToPlayerName[sp.role] ?? 'Player';
+                            return ListTile(
+                              title: Text(
+                                '$roleName@$playerName',
+                                style: const TextStyle(color: Colors.white),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
