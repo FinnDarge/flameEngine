@@ -5,7 +5,7 @@ import 'game_grid.dart';
 import 'tile_type.dart';
 import 'game_scenario.dart';
 import '../services/management_api_service.dart'
-    show ApiPlayer, ApiBoard, ApiPiece, ApiGame;
+    show ApiPlayer, ApiBoard, ApiPiece, ApiGame, ManagementApiService;
 import '../utils/sample_items.dart';
 
 /// Manages the overall game state
@@ -42,6 +42,9 @@ class GameState {
 
   /// Pieces loaded from the management API (characters with NFC tags).
   List<ApiPiece> apiPieces = const [];
+
+  /// Access token for the current player (for API authentication)
+  String? playerAccessToken;
 
   /// Games loaded from the management API.
   List<ApiGame> apiGames = const [];
@@ -240,6 +243,13 @@ class GameState {
       return false;
     }
 
+    // Validate destination tile has space (max 4 entities: characters + enemies)
+    final entityCount = tile.charactersHere.length + (tile.enemy != null ? 1 : 0);
+    if (entityCount >= 4) {
+      print('⚠ The Field is full and cannot hold any more Characters!');
+      return false;
+    }
+
     // Remove from old tile
     final oldTile = grid.getTile(
       character.position.y.toInt(),
@@ -331,6 +341,61 @@ class GameState {
           char.position.x == goalPosition.x &&
           char.position.y == goalPosition.y,
     );
+  }
+
+  /// Sync board state from backend API
+  /// This updates field UUIDs and piece positions from the server
+  Future<bool> syncBoardFromBackend(ManagementApiService apiService) async {
+    if (sessionId == null || playerAccessToken == null) {
+      print('⚠ Cannot sync board: no session configured');
+      return false;
+    }
+
+    final boardData = await apiService.getSessionBoard(
+      sessionId: sessionId!,
+      accessToken: playerAccessToken!,
+    );
+
+    if (boardData == null) {
+      print('❌ Failed to sync board from backend');
+      return false;
+    }
+
+    print('🔄 Syncing board state from backend...');
+
+    // Extract fields list from response
+    // Expected structure: { fields: [{uuid, position: {x, y}, pieces: [...]}] }
+    final fieldsList = boardData['fields'] as List<dynamic>?;
+    if (fieldsList == null) {
+      print('⚠ No fields data in response');
+      return false;
+    }
+
+    // Map field UUIDs to grid tiles based on position
+    int mappedFields = 0;
+    for (final fieldData in fieldsList) {
+      final fieldMap = fieldData as Map<String, dynamic>;
+      final fieldUuid = fieldMap['uuid'] as String?;
+      final positionMap = fieldMap['position'] as Map<String, dynamic>?;
+
+      if (fieldUuid == null || positionMap == null) continue;
+
+      // API uses {x, y} position, we use row/col
+      final x = (positionMap['x'] as num?)?.toInt();
+      final y = (positionMap['y'] as num?)?.toInt();
+
+      if (x == null || y == null) continue;
+
+      // Map API position to grid tile (adjust if needed based on API convention)
+      final tile = grid.getTile(y, x);
+      if (tile != null) {
+        tile.fieldUuid = fieldUuid;
+        mappedFields++;
+      }
+    }
+
+    print('✓ Synced $mappedFields field UUIDs to grid tiles');
+    return true;
   }
 }
 

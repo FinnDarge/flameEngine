@@ -286,4 +286,115 @@ class ManagementApiService {
 
   /// Returns the first (primary) board, or null if none loaded.
   ApiBoard? get primaryBoard => boards.isNotEmpty ? boards.first : null;
+
+  // ── Session Movement API ─────────────────────────────────────────────────
+
+  /// Get current board state for a session
+  /// GET /sessionBoard?session={sessionId}
+  Future<Map<String, dynamic>?> getSessionBoard({
+    required String sessionId,
+    required String accessToken,
+  }) async {
+    try {
+      print('📋 Getting session board state: $sessionId');
+      
+      final headers = {
+        'Authorization': 'Bearer $accessToken',
+        'Accept': 'application/json',
+      };
+      
+      final response = await http.get(
+        Uri.parse('$_kApiBase/sessionBoard?session=$sessionId'),
+        headers: headers,
+      );
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body) as Map<String, dynamic>;
+        print('✓ Board state retrieved');
+        return data;
+      } else {
+        print('⚠ Failed to get board state: ${response.statusCode} ${response.reasonPhrase}');
+        print('   Response: ${response.body}');
+        return null;
+      }
+    } catch (e) {
+      print('❌ Error getting board state: $e');
+      return null;
+    }
+  }
+
+  /// Get available moves for the current player in a session
+  /// GET /sessionMoves?session={sessionId}
+  Future<Map<String, dynamic>?> getMoves({
+    required String sessionId,
+    required String accessToken,
+  }) async {
+    try {
+      print('🎮 Getting available moves for session: $sessionId');
+      
+      final headers = {
+        'Authorization': 'Bearer $accessToken',
+        'Accept': 'application/json',
+      };
+      
+      final response = await http.get(
+        Uri.parse('$_kApiBase/sessionMoves?session=$sessionId'),
+        headers: headers,
+      );
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body) as Map<String, dynamic>;
+        print('✓ Available moves retrieved');
+        return data;
+      } else {
+        print('⚠ Failed to get moves: ${response.statusCode} ${response.reasonPhrase}');
+        print('   Response: ${response.body}');
+        return null;
+      }
+    } catch (e) {
+      print('❌ Error getting moves: $e');
+      return null;
+    }
+  }
+
+  /// Submit a walk movement to the backend
+  /// POST /sessionMoves/walk?session={sessionId}
+  /// Body: { "target": fieldUuid }
+  Future<Map<String, dynamic>?> walkMove({
+    required String sessionId,
+    required String targetFieldUuid,
+    required String accessToken,
+  }) async {
+    try {
+      print('🚶 Submitting walk move to session: $sessionId');
+      print('   Target field: $targetFieldUuid');
+      
+      final headers = {
+        'Authorization': 'Bearer $accessToken',
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      };
+      
+      final body = json.encode({'target': targetFieldUuid});
+      
+      final response = await http.post(
+        Uri.parse('$_kApiBase/sessionMoves/walk?session=$sessionId'),
+        headers: headers,
+        body: body,
+      );
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body) as Map<String, dynamic>;
+        print('✓ Move accepted by server');
+        return data;
+      } else {
+        print('⚠ Move rejected: ${response.statusCode} ${response.reasonPhrase}');
+        print('   Response: ${response.body}');
+        return null;
+      }
+    } catch (e) {
+      print('❌ Error submitting move: $e');
+      return null;
+    }
+  }
 }
