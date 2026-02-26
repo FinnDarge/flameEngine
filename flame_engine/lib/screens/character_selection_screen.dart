@@ -597,6 +597,9 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
                                           sessionPlayer.role == role.uuid,
                                     )
                                     .length;
+                            final roleUuid = role?.uuid;
+                            final isSelectable =
+                                !_hasJoined && roleUuid != null && !isClaimed;
 
                             // Determine colors based on state
                             late Color backgroundColor;
@@ -634,84 +637,104 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
                               iconColor = Colors.green.shade300;
                             }
 
-                            return Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: backgroundColor,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: borderColor,
-                                  width: isScanned ? 2 : 1.5,
-                                ),
-                              ),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  // Role image
-                                  Expanded(
-                                    child: Container(
-                                      margin: const EdgeInsets.only(bottom: 8),
-                                      child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(8),
-                                        child: _getRoleImagePath(
-                                                  frontendRoleName,
-                                                ) !=
-                                                null
-                                            ? Image.asset(
-                                                _getRoleImagePath(
-                                                  frontendRoleName,
-                                                )!,
-                                                fit: BoxFit.cover,
-                                              )
-                                            : Icon(
-                                                Icons.person,
-                                                size: 40,
-                                                color: iconColor,
-                                              ),
-                                      ),
+                            return GestureDetector(
+                              onTap: isSelectable
+                                  ? () {
+                                      setState(() {
+                                        _highlightedRoleUuid = roleUuid;
+                                        _joinError = null;
+                                        nfcStatus =
+                                            'Selected role: $frontendRoleName';
+                                      });
+                                    }
+                                  : null,
+                              child: AnimatedOpacity(
+                                duration: const Duration(milliseconds: 180),
+                                opacity: isSelectable || isScanned ? 1 : 0.8,
+                                child: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: backgroundColor,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: borderColor,
+                                      width: isScanned ? 2 : 1.5,
                                     ),
                                   ),
-                                  // Role name
-                                  Text(
-                                    frontendRoleName,
-                                    style: TextStyle(
-                                      color: textColor,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                  const SizedBox(height: 4),
-                                  // Status indicator
-                                  Row(
+                                  child: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
-                                    mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Icon(
-                                        isClaimed
-                                            ? Icons.lock_rounded
-                                            : Icons.lock_open_rounded,
-                                        size: 14,
-                                        color: iconColor,
-                                      ),
-                                      const SizedBox(width: 3),
-                                      Text(
-                                        !isAvailableInBackend
-                                            ? 'Unavailable'
-                                            : (isScanned
-                                                ? 'Claimed'
-                                                : (isClaimed
-                                                    ? 'Taken${occupiedBy != null ? ' ($occupiedBy)' : ''}'
-                                                    : 'Free')),
-                                        style: TextStyle(
-                                          color: Colors.white.withOpacity(0.7),
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.w500,
+                                      // Role image
+                                      Expanded(
+                                        child: Container(
+                                          margin:
+                                              const EdgeInsets.only(bottom: 8),
+                                          child: ClipRRect(
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                            child: _getRoleImagePath(
+                                                      frontendRoleName,
+                                                    ) !=
+                                                    null
+                                                ? Image.asset(
+                                                    _getRoleImagePath(
+                                                      frontendRoleName,
+                                                    )!,
+                                                    fit: BoxFit.cover,
+                                                  )
+                                                : Icon(
+                                                    Icons.person,
+                                                    size: 40,
+                                                    color: iconColor,
+                                                  ),
+                                          ),
                                         ),
+                                      ),
+                                      // Role name
+                                      Text(
+                                        frontendRoleName,
+                                        style: TextStyle(
+                                          color: textColor,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                      const SizedBox(height: 4),
+                                      // Status indicator
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            isClaimed
+                                                ? Icons.lock_rounded
+                                                : Icons.lock_open_rounded,
+                                            size: 14,
+                                            color: iconColor,
+                                          ),
+                                          const SizedBox(width: 3),
+                                          Text(
+                                            !isAvailableInBackend
+                                                ? 'Unavailable'
+                                                : (isScanned
+                                                    ? 'Claimed'
+                                                    : (isClaimed
+                                                        ? 'Taken${occupiedBy != null ? ' ($occupiedBy)' : ''}'
+                                                        : 'Free')),
+                                            style: TextStyle(
+                                              color:
+                                                  Colors.white.withOpacity(0.7),
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ],
                                   ),
-                                ],
+                                ),
                               ),
                             );
                           }).toList(),
