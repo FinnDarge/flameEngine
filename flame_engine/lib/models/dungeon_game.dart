@@ -165,6 +165,8 @@ class DungeonGame extends FlameGame {
       // Store session players in game state
       gameState.sessionPlayers = List.unmodifiable(sessionPlayers);
 
+      _ensureLocalCharacterFromSessionPlayers(sessionPlayers);
+
       print('✓ Loaded ${sessionPlayers.length} session player(s)');
 
       // For each session player that isn't the local player, create a character
@@ -228,6 +230,57 @@ class DungeonGame extends FlameGame {
     } catch (e) {
       print('⚠ Error loading session players: $e');
     }
+  }
+
+  void _ensureLocalCharacterFromSessionPlayers(
+    List<SessionPlayer> sessionPlayers,
+  ) {
+    if (gameState.localPlayer.character != null ||
+        gameState.localApiPlayer == null ||
+        gameState.gameStartPositions.isEmpty) {
+      return;
+    }
+
+    SessionPlayer? localAssignment;
+    for (final sessionPlayer in sessionPlayers) {
+      if (sessionPlayer.player == gameState.localApiPlayer!.uuid) {
+        localAssignment = sessionPlayer;
+        break;
+      }
+    }
+
+    if (localAssignment == null) {
+      print('ℹ No local role assignment found yet.');
+      return;
+    }
+
+    ApiGamePiece? localGamePiece;
+    for (final gamePiece in gameState.gameStartPositions) {
+      if (gamePiece.role == localAssignment.role) {
+        localGamePiece = gamePiece;
+        break;
+      }
+    }
+
+    final roleName = localGamePiece?.roleName;
+    if (roleName == null) {
+      print('⚠ Local role has no mapped roleName in game pieces.');
+      return;
+    }
+
+    final characterClass = gameState.mapApiNameToCharacterClass(roleName);
+    final character = Character(
+      characterClass: characterClass,
+      nfcTagId: characterClass.nfcTagId,
+      position: Vector2(0, 0),
+    );
+
+    gameState.localPlayer.claimCharacter(character);
+    if (!gameState.characters.contains(character)) {
+      gameState.addCharacter(character);
+    }
+
+    print('✓ Assigned local character from role: ${character.name}');
   }
 
   /// Assign an available unclaimed character class
