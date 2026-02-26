@@ -329,9 +329,11 @@ class DungeonGame extends FlameGame {
     _remoteSyncTimer?.cancel();
     _remoteSyncTimer = null;
 
-    // Remove all character sprites
+    // Remove all character sprites from whichever parent currently owns them.
+    // Character sprites are mounted under GridComponent, so removing from
+    // DungeonGame directly can assert in Flame.
     for (final sprite in characterSprites.values) {
-      remove(sprite);
+      sprite.removeFromParent();
     }
     characterSprites.clear();
 
