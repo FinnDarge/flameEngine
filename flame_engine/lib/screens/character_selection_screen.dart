@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import '../models/character.dart';
 import '../models/game_state.dart';
 import '../services/nfc_service.dart' show NFCService, kMockNfc;
-import '../services/session_api_service.dart' show SessionApiService, ApiRole;
+import '../controllers/session_flow_controller.dart';
+import '../services/session_api_service.dart' show ApiRole;
 import '../widgets/token_and_board_app_bar.dart';
 import '../widgets/session_info_footer.dart';
 
@@ -10,7 +11,7 @@ import '../widgets/session_info_footer.dart';
 class CharacterSelectionScreen extends StatefulWidget {
   final GameState gameState;
   final NFCService nfcService;
-  final SessionApiService sessionApi;
+  final SessionFlowController sessionFlow;
   final VoidCallback onCharacterSelected;
   final VoidCallback onBack;
 
@@ -18,7 +19,7 @@ class CharacterSelectionScreen extends StatefulWidget {
     super.key,
     required this.gameState,
     required this.nfcService,
-    required this.sessionApi,
+    required this.sessionFlow,
     required this.onCharacterSelected,
     required this.onBack,
   });
@@ -97,12 +98,12 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
 
     try {
       // Fetch available roles for the game
-      final roles = await widget.sessionApi.getRolesForGame(gameUuid);
+      final roles = await widget.sessionFlow.getRolesForGame(gameUuid);
 
       // Fetch claimed roles if we have a session
       List<String> claimedUuids = [];
       if (sessionUuid != null) {
-        final players = await widget.sessionApi.getSessionPlayers(sessionUuid);
+        final players = await widget.sessionFlow.getSessionPlayers(sessionUuid);
         claimedUuids = players.map((p) => p.role).toList();
       }
 
@@ -283,10 +284,9 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
     });
 
     try {
-      await widget.sessionApi.joinSession(
-        sessionUuid: sessionUuid,
+      await widget.sessionFlow.claimRoleForLocalPlayer(
+        gameState: widget.gameState,
         roleUuid: _highlightedRoleUuid!,
-        userKey: userKey,
       );
 
       // Success - mark as joined and proceed to next screen

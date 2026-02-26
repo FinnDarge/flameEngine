@@ -5,6 +5,7 @@ import 'models/dungeon_game.dart';
 import 'services/nfc_service.dart';
 import 'services/management_api_service.dart';
 import 'services/session_api_service.dart';
+import 'controllers/session_flow_controller.dart';
 import 'screens/scenario_selection_screen.dart';
 import 'screens/session_selection_screen.dart';
 import 'screens/character_selection_screen.dart';
@@ -45,12 +46,14 @@ class _GameNavigatorState extends State<GameNavigator> {
   final NFCService nfcService = NFCService();
   final ManagementApiService _api = ManagementApiService();
   final SessionApiService _sessionApi = SessionApiService();
+  late final SessionFlowController _sessionFlow;
   bool _apiLoading = true;
   bool _serverOffline = false;
 
   @override
   void initState() {
     super.initState();
+    _sessionFlow = SessionFlowController(sessionApi: _sessionApi);
     _loadApiThenStart();
   }
 
@@ -130,9 +133,18 @@ class _GameNavigatorState extends State<GameNavigator> {
     setState(() {});
   }
 
-  void _onSessionReady() {
-    game.gameState.phase = GamePhase.characterSelection;
-    setState(() {});
+  Future<void> _onSessionReady() async {
+    try {
+      await _sessionFlow.ensureLobbyReady(game.gameState);
+      if (!mounted) return;
+      game.gameState.phase = GamePhase.characterSelection;
+      setState(() {});
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unable to enter lobby: $e')),
+      );
+    }
   }
 
   void _onSessionBack() {
@@ -205,7 +217,7 @@ class _GameNavigatorState extends State<GameNavigator> {
         } else if (phase == GamePhase.sessionSelection) {
           return SessionSelectionScreen(
             gameState: game.gameState,
-            sessionApi: _sessionApi,
+            sessionFlow: _sessionFlow,
             onSessionReady: _onSessionReady,
             onBack: _onSessionBack,
           );
@@ -213,7 +225,7 @@ class _GameNavigatorState extends State<GameNavigator> {
           return CharacterSelectionScreen(
             gameState: game.gameState,
             nfcService: nfcService,
-            sessionApi: _sessionApi,
+            sessionFlow: _sessionFlow,
             onCharacterSelected: _onCharacterSelectionComplete,
             onBack: _onCharacterSelectionBack,
           );
@@ -229,6 +241,7 @@ class _GameNavigatorState extends State<GameNavigator> {
             gameState: game.gameState,
             nfcService: nfcService,
             onGameEnd: _onGameEnd,
+            sessionFlow: _sessionFlow,
             onBack: _onGameplayBack,
           );
         }

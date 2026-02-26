@@ -4,6 +4,7 @@ import 'package:flame/game.dart';
 import '../models/character.dart';
 import '../models/game_state.dart';
 import '../services/nfc_service.dart';
+import '../controllers/session_flow_controller.dart';
 import '../services/session_api_service.dart';
 import '../services/management_api_service.dart' show ApiPiece, ApiGamePiece;
 import '../models/dungeon_game.dart';
@@ -17,6 +18,7 @@ class GameplayScreen extends StatefulWidget {
   final GameState gameState;
   final NFCService nfcService;
   final VoidCallback onGameEnd;
+  final SessionFlowController sessionFlow;
   final VoidCallback? onBack;
 
   const GameplayScreen({
@@ -25,6 +27,7 @@ class GameplayScreen extends StatefulWidget {
     required this.gameState,
     required this.nfcService,
     required this.onGameEnd,
+    required this.sessionFlow,
     this.onBack,
   });
 
@@ -46,12 +49,8 @@ class _GameplayScreenState extends State<GameplayScreen> {
   }
 
   Future<void> _handleStartGame() async {
-    final sessionUuid = widget.gameState.sessionUuid;
-    final userKey = widget.gameState.localApiPlayer?.accessToken;
-    if (sessionUuid == null || userKey == null) return;
-    final api = SessionApiService();
     try {
-      await api.startSession(sessionUuid: sessionUuid, userKey: userKey);
+      await widget.sessionFlow.startSession(widget.gameState);
       // Optionally, trigger any local state update or fetch
       setState(() {});
     } catch (e) {
