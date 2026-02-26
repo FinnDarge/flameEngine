@@ -220,6 +220,13 @@ class GameState {
       return false;
     }
 
+    // Validate destination tile has space (max 4 entities: characters + enemies)
+    final entityCount = tile.charactersHere.length + (tile.enemy != null ? 1 : 0);
+    if (entityCount >= 4) {
+      print('⚠ The Field is full and cannot hold any more Characters!');
+      return false;
+    }
+
     // Remove from old tile
     final oldTile = grid.getTile(
       character.position.y.toInt(),

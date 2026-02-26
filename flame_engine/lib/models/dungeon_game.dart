@@ -311,27 +311,50 @@ class DungeonGame extends FlameGame {
   }
   
   /// Get the next available sub-position (0-3) for a tile
+  /// Takes into account both characters AND enemies (max 4 entities total)
   int _getNextAvailableSubPosition(Vector2 position) {
-    final key = _getTileKey(position);
-    final occupants = _tilesOccupancy[key] ?? [];
+    final tile = gameState.grid.getTile(
+      position.y.toInt(),
+      position.x.toInt(),
+    );
     
-    // Return the count as the next position (0-3, max 4 characters)
-    final nextPos = occupants.length;
+    if (tile == null) return 0;
+    
+    // Count all entities: characters + enemy (if present)
+    final entityCount = tile.charactersHere.length + (tile.enemy != null ? 1 : 0);
+    
+    // Return the count as the next position (0-3, max 4 entities)
+    final nextPos = entityCount;
     return nextPos.clamp(0, 3);
   }
   
-  /// Reassign sub-positions for all characters on a specific tile
+  /// Reassign sub-positions for all entities on a specific tile
+  /// Enemies take priority for position 0, then characters fill remaining positions
   void _reassignSubPositionsForTile(Vector2 position) {
-    final key = _getTileKey(position);
-    final occupants = _tilesOccupancy[key] ?? [];
+    final tile = gameState.grid.getTile(
+      position.y.toInt(),
+      position.x.toInt(),
+    );
     
-    // Reassign sub-positions in order (0, 1, 2, 3)
-    for (int i = 0; i < occupants.length && i < 4; i++) {
-      final character = occupants[i];
+    if (tile == null) return;
+    
+    int currentPos = 0;
+    
+    // Enemy gets position 0 if present (enemies are stationary/priority)
+    if (tile.enemy != null) {
+      currentPos++; // Skip position 0 for enemy
+      // TODO: Update enemy sprite sub-position when enemy sprite system is implemented
+    }
+    
+    // Assign remaining positions to characters
+    for (final character in tile.charactersHere) {
+      if (currentPos >= 4) break; // Max 4 entities per tile
+      
       final sprite = characterSprites[character];
       if (sprite != null) {
-        sprite.updateSubPosition(i);
+        sprite.updateSubPosition(currentPos);
       }
+      currentPos++;
     }
   }
 
