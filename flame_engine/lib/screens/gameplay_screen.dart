@@ -1,9 +1,10 @@
-import 'dart:async' show Timer, unawaited;
+import 'dart:async' show StreamSubscription, Timer, unawaited;
 import 'package:flutter/material.dart';
 import 'package:flame/game.dart';
 import '../models/character.dart';
 import '../models/game_state.dart';
 import '../services/nfc_service.dart';
+import '../services/tile_input_provider.dart';
 import '../controllers/session_flow_controller.dart';
 import '../services/session_api_service.dart';
 import '../services/management_api_service.dart' show ApiPiece, ApiGamePiece;
@@ -17,6 +18,7 @@ class GameplayScreen extends StatefulWidget {
   final DungeonGame game;
   final GameState gameState;
   final NFCService nfcService;
+  final TileInputProvider tileInputProvider;
   final VoidCallback onGameEnd;
   final SessionFlowController sessionFlow;
   final VoidCallback? onBack;
@@ -26,6 +28,7 @@ class GameplayScreen extends StatefulWidget {
     required this.game,
     required this.gameState,
     required this.nfcService,
+    required this.tileInputProvider,
     required this.onGameEnd,
     required this.sessionFlow,
     this.onBack,
@@ -40,6 +43,7 @@ class _GameplayScreenState extends State<GameplayScreen> {
   String nfcStatus = 'Initialising NFC...';
   bool showInventory = false;
   Timer? _sessionPollTimer;
+  StreamSubscription<TileActivationInput>? _tileInputSubscription;
 
   bool get isSessionOwner {
     final local = widget.gameState.localApiPlayer;
@@ -63,6 +67,9 @@ class _GameplayScreenState extends State<GameplayScreen> {
   @override
   void initState() {
     super.initState();
+    _tileInputSubscription = widget.tileInputProvider.inputs.listen(
+      _handleTileActivationInput,
+    );
     _initNFC();
     // Start polling session state every 5 seconds
     _sessionPollTimer = Timer.periodic(const Duration(seconds: 5), (_) {
@@ -163,25 +170,30 @@ class _GameplayScreenState extends State<GameplayScreen> {
     }
   }
 
+  void _handleTileActivationInput(TileActivationInput input) {
+    // Pass input to game logic (fire and forget)
+    unawaited(widget.game.handleNFCTag(input.tileId, input.data));
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      nfcStatus = 'Tag detected: ${input.tileId}';
+    });
+
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) {
+        setState(() {
+          nfcStatus = _getDefaultNFCStatus();
+        });
+      }
+    });
+  }
+
   Future<void> _startNFCScanning() async {
     try {
-      await widget.nfcService.startScanning((tagId, data) {
-        // Pass NFC event to game logic (fire and forget)
-        unawaited(widget.game.handleNFCTag(tagId, data));
-
-        setState(() {
-          nfcStatus = 'Tag detected: $tagId';
-        });
-
-        // Auto-restart scanning after a delay
-        Future.delayed(const Duration(seconds: 2), () {
-          if (mounted) {
-            setState(() {
-              nfcStatus = _getDefaultNFCStatus();
-            });
-          }
-        });
-      });
+      await widget.tileInputProvider.start();
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -201,7 +213,8 @@ class _GameplayScreenState extends State<GameplayScreen> {
 
   @override
   void dispose() {
-    widget.nfcService.stopScanning();
+    _tileInputSubscription?.cancel();
+    unawaited(widget.tileInputProvider.stop());
     _sessionPollTimer?.cancel();
     super.dispose();
   }

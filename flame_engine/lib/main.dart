@@ -3,6 +3,7 @@ import 'services/audio_service.dart';
 import 'models/game_state.dart';
 import 'models/dungeon_game.dart';
 import 'services/nfc_service.dart';
+import 'services/tile_input_provider.dart';
 import 'services/management_api_service.dart';
 import 'services/session_api_service.dart';
 import 'controllers/session_flow_controller.dart';
@@ -44,6 +45,7 @@ class _GameNavigatorState extends State<GameNavigator> {
 
   late DungeonGame game;
   final NFCService nfcService = NFCService();
+  late final TileInputProvider _tileInputProvider;
   final ManagementApiService _api = ManagementApiService();
   final SessionApiService _sessionApi = SessionApiService();
   late final SessionFlowController _sessionFlow;
@@ -54,6 +56,7 @@ class _GameNavigatorState extends State<GameNavigator> {
   void initState() {
     super.initState();
     _sessionFlow = SessionFlowController(sessionApi: _sessionApi);
+    _tileInputProvider = NfcTileInputProvider(nfcService: nfcService);
     _loadApiThenStart();
   }
 
@@ -177,7 +180,7 @@ class _GameNavigatorState extends State<GameNavigator> {
 
   @override
   void dispose() {
-    nfcService.stopScanning();
+    _tileInputProvider.stop();
     super.dispose();
   }
 
@@ -240,6 +243,7 @@ class _GameNavigatorState extends State<GameNavigator> {
             game: game,
             gameState: game.gameState,
             nfcService: nfcService,
+            tileInputProvider: _tileInputProvider,
             onGameEnd: _onGameEnd,
             sessionFlow: _sessionFlow,
             onBack: _onGameplayBack,
