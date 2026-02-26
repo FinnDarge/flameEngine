@@ -52,7 +52,9 @@ class _InventoryOverlayState extends State<InventoryOverlay> {
                 _buildHeader(),
                 Flexible(
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.only(bottom: 80), // Prevent floating button overlap
+                    padding: const EdgeInsets.only(
+                      bottom: 80,
+                    ), // Prevent floating button overlap
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -101,18 +103,22 @@ class _InventoryOverlayState extends State<InventoryOverlay> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: widget.player.inventory.isFull 
-                  ? Colors.red.withOpacity(0.3) 
+              color: widget.player.inventory.isFull
+                  ? Colors.red.withOpacity(0.3)
                   : Colors.white10,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: widget.player.inventory.isFull ? Colors.red : Colors.white24,
+                color: widget.player.inventory.isFull
+                    ? Colors.red
+                    : Colors.white24,
               ),
             ),
             child: Text(
               '${widget.player.inventory.usedSlots}/${widget.player.inventory.maxSlots}',
               style: TextStyle(
-                color: widget.player.inventory.isFull ? Colors.red : Colors.white70,
+                color: widget.player.inventory.isFull
+                    ? Colors.red
+                    : Colors.white70,
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
               ),
@@ -207,7 +213,7 @@ class _InventoryOverlayState extends State<InventoryOverlay> {
     required int bonus,
   }) {
     final total = base + bonus;
-    
+
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
@@ -221,10 +227,7 @@ class _InventoryOverlayState extends State<InventoryOverlay> {
           const SizedBox(height: 4),
           Text(
             label,
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 10,
-            ),
+            style: const TextStyle(color: Colors.white70, fontSize: 10),
           ),
           const SizedBox(height: 2),
           if (max != null)
@@ -314,124 +317,172 @@ class _InventoryOverlayState extends State<InventoryOverlay> {
   Widget _buildWeaponSlot() {
     final item = widget.player.inventory.equippedWeapon;
 
-    return GestureDetector(
-      onTap: item != null
-          ? () {
-              setState(() {
-                widget.player.inventory.unequipWeapon();
-                selectedItem = null;
-              });
-            }
-          : null,
-      child: Container(
-        height: 120,
-        decoration: BoxDecoration(
-          color: const Color(0xFF2d2d2d),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: item != null
-                ? Color(item.categoryColor).withOpacity(0.7)
-                : Colors.white24,
-            width: 2,
-          ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (item != null)
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: _buildItemIcon(item),
-                ),
-              )
-            else
-              const Expanded(
-                child: Icon(Icons.flash_on, color: Colors.white24, size: 48),
-              ),
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              decoration: const BoxDecoration(
-                color: Color(0xFF1a1a1a),
-                borderRadius: BorderRadius.vertical(bottom: Radius.circular(6)),
-              ),
-              child: Center(
-                child: Text(
-                  item?.name ?? 'Weapon',
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 11,
-                  ),
-                  textAlign: TextAlign.center,
-                  overflow: TextOverflow.ellipsis,
-                ),
+    return DragTarget<InventoryItem>(
+      onWillAcceptWithDetails: (details) {
+        // Only accept weapon equipment items
+        return details.data.equipmentType == EquipmentType.weapon;
+      },
+      onAcceptWithDetails: (details) {
+        setState(() {
+          widget.player.inventory.equipItem(details.data);
+          selectedItem = null;
+        });
+      },
+      builder: (context, candidateData, rejectedData) {
+        final isHovering = candidateData.isNotEmpty;
+
+        return GestureDetector(
+          onTap: item != null
+              ? () {
+                  setState(() {
+                    widget.player.inventory.unequipWeapon();
+                    selectedItem = null;
+                  });
+                }
+              : null,
+          child: Container(
+            height: 120,
+            decoration: BoxDecoration(
+              color: isHovering
+                  ? const Color(0xFF00d9ff).withValues(alpha: 0.2)
+                  : const Color(0xFF2d2d2d),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: isHovering
+                    ? const Color(0xFF00d9ff)
+                    : item != null
+                    ? Color(item.categoryColor).withOpacity(0.7)
+                    : Colors.white24,
+                width: isHovering ? 3 : 2,
               ),
             ),
-          ],
-        ),
-      ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (item != null)
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: _buildItemIcon(item),
+                    ),
+                  )
+                else
+                  const Expanded(
+                    child: Icon(
+                      Icons.flash_on,
+                      color: Colors.white24,
+                      size: 48,
+                    ),
+                  ),
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF1a1a1a),
+                    borderRadius: BorderRadius.vertical(
+                      bottom: Radius.circular(6),
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      item?.name ?? 'Weapon',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 11,
+                      ),
+                      textAlign: TextAlign.center,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
   Widget _buildArmorSlot() {
     final item = widget.player.inventory.equippedArmor;
 
-    return GestureDetector(
-      onTap: item != null
-          ? () {
-              setState(() {
-                widget.player.inventory.unequipArmor();
-                selectedItem = null;
-              });
-            }
-          : null,
-      child: Container(
-        height: 120,
-        decoration: BoxDecoration(
-          color: const Color(0xFF2d2d2d),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: item != null
-                ? Color(item.categoryColor).withOpacity(0.7)
-                : Colors.white24,
-            width: 2,
-          ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (item != null)
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: _buildItemIcon(item),
-                ),
-              )
-            else
-              const Expanded(
-                child: Icon(Icons.shield, color: Colors.white24, size: 48),
-              ),
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              decoration: const BoxDecoration(
-                color: Color(0xFF1a1a1a),
-                borderRadius: BorderRadius.vertical(bottom: Radius.circular(6)),
-              ),
-              child: Center(
-                child: Text(
-                  item?.name ?? 'Armor',
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 11,
-                  ),
-                  textAlign: TextAlign.center,
-                  overflow: TextOverflow.ellipsis,
-                ),
+    return DragTarget<InventoryItem>(
+      onWillAcceptWithDetails: (details) {
+        // Only accept armor equipment items
+        return details.data.equipmentType == EquipmentType.armor;
+      },
+      onAcceptWithDetails: (details) {
+        setState(() {
+          widget.player.inventory.equipItem(details.data);
+          selectedItem = null;
+        });
+      },
+      builder: (context, candidateData, rejectedData) {
+        final isHovering = candidateData.isNotEmpty;
+
+        return GestureDetector(
+          onTap: item != null
+              ? () {
+                  setState(() {
+                    widget.player.inventory.unequipArmor();
+                    selectedItem = null;
+                  });
+                }
+              : null,
+          child: Container(
+            height: 120,
+            decoration: BoxDecoration(
+              color: isHovering
+                  ? const Color(0xFF00d9ff).withValues(alpha: 0.2)
+                  : const Color(0xFF2d2d2d),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: isHovering
+                    ? const Color(0xFF00d9ff)
+                    : item != null
+                    ? Color(item.categoryColor).withOpacity(0.7)
+                    : Colors.white24,
+                width: isHovering ? 3 : 2,
               ),
             ),
-          ],
-        ),
-      ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (item != null)
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: _buildItemIcon(item),
+                    ),
+                  )
+                else
+                  const Expanded(
+                    child: Icon(Icons.shield, color: Colors.white24, size: 48),
+                  ),
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF1a1a1a),
+                    borderRadius: BorderRadius.vertical(
+                      bottom: Radius.circular(6),
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      item?.name ?? 'Armor',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 11,
+                      ),
+                      textAlign: TextAlign.center,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -444,9 +495,17 @@ class _InventoryOverlayState extends State<InventoryOverlay> {
           children: [
             _buildFilterChip('All', null, null),
             const SizedBox(width: 8),
-            _buildFilterChip('Weapons', ItemCategory.equipment, EquipmentType.weapon),
+            _buildFilterChip(
+              'Weapons',
+              ItemCategory.equipment,
+              EquipmentType.weapon,
+            ),
             const SizedBox(width: 8),
-            _buildFilterChip('Armor', ItemCategory.equipment, EquipmentType.armor),
+            _buildFilterChip(
+              'Armor',
+              ItemCategory.equipment,
+              EquipmentType.armor,
+            ),
             const SizedBox(width: 8),
             _buildFilterChip('Consumables', ItemCategory.consumable, null),
           ],
@@ -455,8 +514,13 @@ class _InventoryOverlayState extends State<InventoryOverlay> {
     );
   }
 
-  Widget _buildFilterChip(String label, ItemCategory? category, EquipmentType? equipType) {
-    final isSelected = filterCategory == category && filterEquipmentType == equipType;
+  Widget _buildFilterChip(
+    String label,
+    ItemCategory? category,
+    EquipmentType? equipType,
+  ) {
+    final isSelected =
+        filterCategory == category && filterEquipmentType == equipType;
 
     return FilterChip(
       label: Text(label),
@@ -492,7 +556,9 @@ class _InventoryOverlayState extends State<InventoryOverlay> {
       items = items.where((item) => item.category == filterCategory).toList();
       // Additional filter for equipment type
       if (filterEquipmentType != null) {
-        items = items.where((item) => item.equipmentType == filterEquipmentType).toList();
+        items = items
+            .where((item) => item.equipmentType == filterEquipmentType)
+            .toList();
       }
     }
 
@@ -500,10 +566,7 @@ class _InventoryOverlayState extends State<InventoryOverlay> {
       return Container(
         height: 150,
         alignment: Alignment.center,
-        child: const Text(
-          'No items',
-          style: TextStyle(color: Colors.white38),
-        ),
+        child: const Text('No items', style: TextStyle(color: Colors.white38)),
       );
     }
 
@@ -529,63 +592,128 @@ class _InventoryOverlayState extends State<InventoryOverlay> {
     final isSelected = selectedItem?.id == item.id;
     final isEquipped = widget.player.inventory.isEquipped(item.id);
 
+    // Build the item widget
+    final itemWidget = Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF2d2d2d),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isSelected
+              ? const Color(0xFF00d9ff)
+              : Color(item.categoryColor).withValues(alpha: 0.5),
+          width: isSelected ? 3 : 2,
+        ),
+      ),
+      child: Stack(
+        children: [
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Expanded(child: _buildItemIcon(item)),
+              if (item.quantity > 1)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.7),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    'x${item.quantity}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          if (isEquipped)
+            const Positioned(
+              top: 4,
+              right: 4,
+              child: Icon(Icons.check_circle, color: Colors.green, size: 16),
+            ),
+        ],
+      ),
+    );
+
+    // Wrap equipment items with drag functionality
+    if (item.isEquipment && !isEquipped) {
+      return LongPressDraggable<InventoryItem>(
+        data: item,
+        feedback: Transform.scale(
+          scale: 1.2,
+          child: Opacity(
+            opacity: 0.8,
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                width: 80,
+                height: 94,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2d2d2d),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFF00d9ff), width: 3),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF00d9ff).withValues(alpha: 0.5),
+                      blurRadius: 15,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: _buildItemIcon(item),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Text(
+                        item.name,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        childWhenDragging: Opacity(opacity: 0.3, child: itemWidget),
+        child: GestureDetector(
+          onTap: () {
+            setState(() {
+              selectedItem = isSelected ? null : item;
+            });
+          },
+          child: itemWidget,
+        ),
+      );
+    }
+
+    // Non-equipment items or equipped items just use tap
     return GestureDetector(
       onTap: () {
         setState(() {
           selectedItem = isSelected ? null : item;
         });
       },
-      child: Container(
-        decoration: BoxDecoration(
-          color: const Color(0xFF2d2d2d),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isSelected
-                ? const Color(0xFF00d9ff)
-                : Color(item.categoryColor).withValues(alpha: 0.5),
-            width: isSelected ? 3 : 2,
-          ),
-        ),
-        child: Stack(
-          children: [
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Expanded(child: _buildItemIcon(item)),
-                if (item.quantity > 1)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.7),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      'x${item.quantity}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            if (isEquipped)
-              const Positioned(
-                top: 4,
-                right: 4,
-                child: Icon(
-                  Icons.check_circle,
-                  color: Colors.green,
-                  size: 16,
-                ),
-              ),
-          ],
-        ),
-      ),
+      child: itemWidget,
     );
   }
 
@@ -615,11 +743,7 @@ class _InventoryOverlayState extends State<InventoryOverlay> {
       icon = Icons.healing;
     }
 
-    return Icon(
-      icon,
-      color: Color(item.categoryColor),
-      size: 36,
-    );
+    return Icon(icon, color: Color(item.categoryColor), size: 36);
   }
 
   Widget _buildItemDetails() {
@@ -651,7 +775,7 @@ class _InventoryOverlayState extends State<InventoryOverlay> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      item.isEquipment 
+                      item.isEquipment
                           ? item.equipmentType!.displayName
                           : item.category.displayName,
                       style: const TextStyle(
@@ -663,7 +787,8 @@ class _InventoryOverlayState extends State<InventoryOverlay> {
                 ),
               ),
               // Equipment actions
-              if (item.isEquipment && !widget.player.inventory.isEquipped(item.id)) ...[
+              if (item.isEquipment &&
+                  !widget.player.inventory.isEquipped(item.id)) ...[
                 ElevatedButton.icon(
                   onPressed: () {
                     setState(() {
