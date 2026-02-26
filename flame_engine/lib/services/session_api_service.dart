@@ -1,0 +1,75 @@
+import 'api_client.dart';
+
+/// Typed result from creating a session.
+class CreatedSession {
+  final String uuid;
+  final String joinCode;
+
+  const CreatedSession({required this.uuid, required this.joinCode});
+
+  factory CreatedSession.fromJson(Map<String, dynamic> json) => CreatedSession(
+    uuid: json['uuid'] as String,
+    joinCode: json['joinCode'] as String,
+  );
+}
+
+/// Typed result from looking up a session (by UUID or join code).
+class SessionDetail {
+  final String uuid;
+  final String creator;
+  final String game;
+  final String joinCode;
+
+  const SessionDetail({
+    required this.uuid,
+    required this.creator,
+    required this.game,
+    required this.joinCode,
+  });
+
+  factory SessionDetail.fromJson(Map<String, dynamic> json) => SessionDetail(
+    uuid: json['uuid'] as String,
+    creator: json['creator'] as String,
+    game: json['game'] as String,
+    joinCode: json['joinCode'] as String,
+  );
+}
+
+/// Service for session lifecycle API calls.
+///
+/// All mutating calls require the player's `x-user-key` (access token).
+class SessionApiService {
+  final ApiClient _client;
+
+  SessionApiService({ApiClient? client}) : _client = client ?? ApiClient();
+
+  /// Create a new session for [gameUuid] as the player identified by
+  /// [userKey]. Returns the new session UUID and 8-character join code.
+  Future<CreatedSession> createSession({
+    required String gameUuid,
+    required String userKey,
+  }) async {
+    final body = await _client.userPost('/sessions', {
+      'game': gameUuid,
+    }, userKey);
+    return CreatedSession.fromJson(body!);
+  }
+
+  /// Look up a session by its 8-character [joinCode].
+  ///
+  /// The backend responds with a 302 redirect to `/sessions/{uuid}`; the
+  /// [ApiClient.getFollowingRedirect] call follows it and returns the full
+  /// [SessionDetail].
+  Future<SessionDetail> getSessionByJoinCode(String joinCode) async {
+    final body = await _client.getFollowingRedirect(
+      '/sessions/joinCode/$joinCode',
+    );
+    return SessionDetail.fromJson(body);
+  }
+
+  /// Get session details by UUID.
+  Future<SessionDetail> getSession(String sessionUuid) async {
+    final body = await _client.getOne('/sessions/$sessionUuid');
+    return SessionDetail.fromJson(body);
+  }
+}

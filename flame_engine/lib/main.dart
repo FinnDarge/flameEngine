@@ -3,8 +3,9 @@ import 'models/game_state.dart';
 import 'models/dungeon_game.dart';
 import 'services/nfc_service.dart';
 import 'services/management_api_service.dart';
+import 'services/session_api_service.dart';
 import 'screens/scenario_selection_screen.dart';
-import 'screens/grid_setup_screen.dart';
+import 'screens/session_selection_screen.dart';
 import 'screens/character_selection_screen.dart';
 import 'screens/character_start_placement_screen.dart';
 import 'screens/gameplay_screen.dart';
@@ -31,6 +32,7 @@ class _GameNavigatorState extends State<GameNavigator> {
   late DungeonGame game;
   final NFCService nfcService = NFCService();
   final ManagementApiService _api = ManagementApiService();
+  final SessionApiService _sessionApi = SessionApiService();
   bool _apiLoading = true;
 
   @override
@@ -75,6 +77,9 @@ class _GameNavigatorState extends State<GameNavigator> {
     game.gameState.apiPieces = _kSkipApi
         ? const []
         : List.unmodifiable(_api.pieces);
+    game.gameState.apiGames = _kSkipApi
+        ? const []
+        : List.unmodifiable(_api.games);
 
     print('\n✅ Game state initialized:');
     print('   gameState.apiPlayers: ${game.gameState.apiPlayers.length}');
@@ -107,40 +112,25 @@ class _GameNavigatorState extends State<GameNavigator> {
     setState(() {});
   }
 
-  void _onCharacterSelectionBack() {
-    // Go back to scenario selection
-    game.gameState.localPlayer.releaseCharacter();
+  void _onSessionReady() {
+    game.gameState.phase = GamePhase.characterSelection;
+    setState(() {});
+  }
+
+  void _onSessionBack() {
+    game.gameState.sessionId = null;
     game.gameState.phase = GamePhase.scenarioSelection;
     setState(() {});
   }
 
+  void _onCharacterSelectionBack() {
+    // Go back to session selection
+    game.gameState.localPlayer.releaseCharacter();
+    game.gameState.phase = GamePhase.sessionSelection;
+    setState(() {});
+  }
+
   void _onScenarioSelected() {
-    // Recreate game with grid size matching the selected scenario
-    final scenario = game.gameState.selectedScenario;
-    if (scenario != null) {
-      final gridSize = scenario.gridSize;
-      
-      // Store old game state data that needs to persist
-      final apiPlayers = game.gameState.apiPlayers;
-      final apiBoards = game.gameState.apiBoards;
-      final apiPieces = game.gameState.apiPieces;
-      final selectedScenario = game.gameState.selectedScenario;
-      final phase = game.gameState.phase;
-      
-      // Create new game with correct grid size
-      game = DungeonGame(rows: gridSize, columns: gridSize);
-      
-      // Restore persisted data
-      game.gameState.apiPlayers = apiPlayers;
-      game.gameState.apiBoards = apiBoards;
-      game.gameState.apiPieces = apiPieces;
-      game.gameState.selectedScenario = selectedScenario;
-      game.gameState.phase = phase;
-      
-      print('🔄 Game recreated with scenario: ${scenario.name}');
-      print('   Restored ${apiPieces.length} API pieces to game state');
-    }
-    
     setState(() {});
   }
 
@@ -193,10 +183,12 @@ class _GameNavigatorState extends State<GameNavigator> {
             gameState: game.gameState,
             onScenarioSelected: _onScenarioSelected,
           );
-        } else if (phase == GamePhase.puzzleGridSetup) {
-          return GridSetupScreen(
+        } else if (phase == GamePhase.sessionSelection) {
+          return SessionSelectionScreen(
             gameState: game.gameState,
-            onSetupComplete: _onScenarioSelected,
+            sessionApi: _sessionApi,
+            onSessionReady: _onSessionReady,
+            onBack: _onSessionBack,
           );
         } else if (phase == GamePhase.characterSelection) {
           return CharacterSelectionScreen(

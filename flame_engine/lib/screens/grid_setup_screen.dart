@@ -14,7 +14,7 @@ class GridSetupScreen extends StatelessWidget {
   });
 
   void _continueToCharacterSelection() {
-    gameState.phase = GamePhase.characterSelection;
+    gameState.phase = GamePhase.sessionSelection;
     onSetupComplete();
   }
 

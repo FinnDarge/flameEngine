@@ -1,0 +1,1481 @@
+openapi: 3.1.0
+info:
+  title: TokenAndBoard API
+  version: 1.0.0
+  description: >
+    Backend API for the TokenAndBoard application.
+
+    **Authentication:**
+    - `x-api-key` — required for administrative/write operations (boards, pieces, players, games, roles, game pieces, and app uploads).
+    - `x-user-key` — player access token; required for player-scoped operations (creating and joining sessions).
+
+servers:
+  - url: /api
+
+components:
+  securitySchemes:
+    ApiKey:
+      type: apiKey
+      in: header
+      name: x-api-key
+      description: Server-side API key for administrative operations.
+    UserKey:
+      type: apiKey
+      in: header
+      name: x-user-key
+      description: Player access token for player-scoped operations.
+
+  schemas:
+    UUID:
+      type: string
+      format: uuid
+      example: 123e4567-e89b-12d3-a456-426614174000
+
+    Point:
+      type: array
+      items:
+        type: integer
+        minimum: 0
+      minItems: 2
+      maxItems: 2
+      description: A 2D position as [x, y] (non-negative integers).
+      example: [3, 5]
+
+    PointObject:
+      type: object
+      description: A 2D position as returned by the database.
+      properties:
+        x:
+          type: number
+        y:
+          type: number
+      required: [x, y]
+      example: { x: 3, y: 5 }
+
+    Error:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+        message:
+          type: string
+      required: [statusCode, message]
+
+    Board:
+      type: object
+      properties:
+        uuid:
+          $ref: '#/components/schemas/UUID'
+        name:
+          type: string
+          maxLength: 255
+        width:
+          type: integer
+          minimum: 1
+        height:
+          type: integer
+          minimum: 1
+      required: [uuid, name, width, height]
+
+    BoardInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        width:
+          type: integer
+          minimum: 1
+        height:
+          type: integer
+          minimum: 1
+      required: [name, width, height]
+
+    Field:
+      type: object
+      properties:
+        uuid:
+          $ref: '#/components/schemas/UUID'
+        nfcId:
+          type: string
+        tile:
+          type: string
+        position:
+          $ref: '#/components/schemas/PointObject'
+      required: [uuid, nfcId, tile, position]
+
+    FieldInput:
+      type: object
+      properties:
+        board:
+          $ref: '#/components/schemas/UUID'
+        position:
+          $ref: '#/components/schemas/Point'
+        tile:
+          type: string
+          minLength: 1
+        nfcId:
+          type: string
+          minLength: 1
+      required: [board, position, tile, nfcId]
+
+    FieldUpdateInput:
+      type: object
+      properties:
+        position:
+          $ref: '#/components/schemas/Point'
+        tile:
+          type: string
+          minLength: 1
+        nfcId:
+          type: string
+          minLength: 1
+      required: [position, tile, nfcId]
+
+    Piece:
+      type: object
+      properties:
+        uuid:
+          $ref: '#/components/schemas/UUID'
+        name:
+          type: string
+        nfcId:
+          type: string
+      required: [uuid, name, nfcId]
+
+    PieceInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        nfcId:
+          type: string
+          minLength: 1
+      required: [name, nfcId]
+
+    Player:
+      type: object
+      properties:
+        uuid:
+          $ref: '#/components/schemas/UUID'
+        name:
+          type: string
+          maxLength: 255
+        accessToken:
+          type: string
+          maxLength: 32
+      required: [uuid, name, accessToken]
+
+    PlayerInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        accessToken:
+          type: string
+          minLength: 1
+          maxLength: 255
+      required: [name, accessToken]
+
+    Game:
+      type: object
+      properties:
+        uuid:
+          $ref: '#/components/schemas/UUID'
+        name:
+          type: string
+          maxLength: 255
+      required: [uuid, name]
+
+    GameInput:
+      type: object
+      properties:
+        board:
+          $ref: '#/components/schemas/UUID'
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+      required: [board, name]
+
+    GameUpdateInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+      required: [name]
+
+    Role:
+      type: object
+      properties:
+        uuid:
+          $ref: '#/components/schemas/UUID'
+        name:
+          type: string
+          maxLength: 255
+      required: [uuid, name]
+
+    RoleInput:
+      type: object
+      properties:
+        game:
+          $ref: '#/components/schemas/UUID'
+        piece:
+          $ref: '#/components/schemas/UUID'
+        name:
+          type: string
+          minLength: 1
+      required: [game, piece, name]
+
+    RoleUpdateInput:
+      type: object
+      properties:
+        piece:
+          $ref: '#/components/schemas/UUID'
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+      required: [piece, name]
+
+    GamePiece:
+      type: object
+      properties:
+        uuid:
+          $ref: '#/components/schemas/UUID'
+        role:
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
+        roleName:
+          oneOf:
+            - type: string
+            - type: 'null'
+        piece:
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
+        pieceName:
+          oneOf:
+            - type: string
+            - type: 'null'
+        initialField:
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
+        initialFieldPosition:
+          oneOf:
+            - $ref: '#/components/schemas/PointObject'
+            - type: 'null'
+      required: [uuid, role, roleName, piece, pieceName, initialField, initialFieldPosition]
+
+    GamePieceInput:
+      type: object
+      properties:
+        game:
+          $ref: '#/components/schemas/UUID'
+        role:
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
+        piece:
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
+        initialField:
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
+      required: [game, role, piece, initialField]
+
+    GamePieceUpdateInput:
+      type: object
+      properties:
+        role:
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
+        piece:
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
+        initialField:
+          oneOf:
+            - $ref: '#/components/schemas/UUID'
+            - type: 'null'
+      required: [role, piece, initialField]
+
+    Session:
+      type: object
+      properties:
+        uuid:
+          $ref: '#/components/schemas/UUID'
+        creator:
+          $ref: '#/components/schemas/UUID'
+        game:
+          $ref: '#/components/schemas/UUID'
+      required: [uuid, creator, game]
+
+    SessionCreated:
+      type: object
+      properties:
+        uuid:
+          $ref: '#/components/schemas/UUID'
+        joinCode:
+          type: string
+          minLength: 8
+          maxLength: 8
+      required: [uuid, joinCode]
+
+    SessionInput:
+      type: object
+      properties:
+        game:
+          $ref: '#/components/schemas/UUID'
+      required: [game]
+
+    JoinSessionInput:
+      type: object
+      properties:
+        role:
+          $ref: '#/components/schemas/UUID'
+      required: [role]
+
+    GameDetail:
+      type: object
+      description: Full game record as returned by the single-game endpoint.
+      properties:
+        uuid:
+          $ref: '#/components/schemas/UUID'
+        board:
+          $ref: '#/components/schemas/UUID'
+        name:
+          type: string
+          maxLength: 255
+      required: [uuid, board, name]
+
+    RoleDetail:
+      type: object
+      description: Full role record as returned by the single-role endpoint.
+      properties:
+        uuid:
+          $ref: '#/components/schemas/UUID'
+        game:
+          $ref: '#/components/schemas/UUID'
+        piece:
+          $ref: '#/components/schemas/UUID'
+        name:
+          type: string
+          maxLength: 255
+      required: [uuid, game, piece, name]
+
+    SessionDetail:
+      type: object
+      description: Full session record as returned by the single-session endpoint.
+      properties:
+        uuid:
+          $ref: '#/components/schemas/UUID'
+        creator:
+          $ref: '#/components/schemas/UUID'
+        game:
+          $ref: '#/components/schemas/UUID'
+        joinCode:
+          type: string
+          minLength: 8
+          maxLength: 8
+      required: [uuid, creator, game, joinCode]
+
+    SessionBoardField:
+      type: object
+      description: A board field annotated with the pieces currently on it.
+      properties:
+        uuid:
+          $ref: '#/components/schemas/UUID'
+        position:
+          $ref: '#/components/schemas/PointObject'
+        nfcId:
+          oneOf:
+            - type: string
+            - type: 'null'
+        pieces:
+          type: array
+          items:
+            $ref: '#/components/schemas/UUID'
+          description: UUIDs of pieces currently on this field.
+      required: [uuid, position, nfcId, pieces]
+
+    Move:
+      type: object
+      description: An available move for the current player.
+      properties:
+        field:
+          $ref: '#/components/schemas/UUID'
+        label:
+          type: string
+          description: '"Move" if the field is empty, "Join" if occupied.'
+          example: Move
+      required: [field]
+
+    WalkInput:
+      type: object
+      properties:
+        target:
+          $ref: '#/components/schemas/UUID'
+      required: [target]
+
+    WalkResult:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Piece moved successfully
+      required: [message]
+
+paths:
+  # ─────────────────────────────────────────────────────────────────────────────
+  # App
+  # ─────────────────────────────────────────────────────────────────────────────
+  /app/android:
+    get:
+      tags: [App]
+      summary: Download Android APK
+      description: Returns the current Android APK as a binary file download.
+      responses:
+        '200':
+          description: APK file.
+          content:
+            application/vnd.android.package-archive:
+              schema:
+                type: string
+                format: binary
+
+    put:
+      tags: [App]
+      summary: Upload Android APK
+      description: Replaces the stored Android APK. Requires API key.
+      security:
+        - ApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        '204':
+          description: APK uploaded successfully.
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Boards
+  # ─────────────────────────────────────────────────────────────────────────────
+  /boards:
+    get:
+      tags: [Boards]
+      summary: List all boards
+      responses:
+        '200':
+          description: Array of boards.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Board'
+
+    post:
+      tags: [Boards]
+      summary: Create a board
+      security:
+        - ApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BoardInput'
+      responses:
+        '204':
+          description: Board created.
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /boards/{board}:
+    parameters:
+      - name: board
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+        description: Board UUID.
+
+    get:
+      tags: [Boards]
+      summary: Get a board
+      responses:
+        '200':
+          description: Board details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Board'
+        '404':
+          description: Board not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      tags: [Boards]
+      summary: Update a board
+      security:
+        - ApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BoardInput'
+      responses:
+        '204':
+          description: Board updated.
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags: [Boards]
+      summary: Delete a board
+      security:
+        - ApiKey: []
+      responses:
+        '204':
+          description: Board deleted.
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Fields
+  # ─────────────────────────────────────────────────────────────────────────────
+  /fields:
+    get:
+      tags: [Fields]
+      summary: List fields for a board
+      parameters:
+        - name: board
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+          description: Board UUID to filter fields by.
+      responses:
+        '200':
+          description: Array of fields.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Field'
+
+    post:
+      tags: [Fields]
+      summary: Create a field
+      security:
+        - ApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FieldInput'
+      responses:
+        '204':
+          description: Field created.
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /fields/{field}:
+    parameters:
+      - name: field
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+        description: Field UUID.
+
+    get:
+      tags: [Fields]
+      summary: Get a field
+      responses:
+        '200':
+          description: Field details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Field'
+        '404':
+          description: Field not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      tags: [Fields]
+      summary: Update a field
+      security:
+        - ApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FieldUpdateInput'
+      responses:
+        '204':
+          description: Field updated.
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags: [Fields]
+      summary: Delete a field
+      security:
+        - ApiKey: []
+      responses:
+        '204':
+          description: Field deleted.
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Pieces
+  # ─────────────────────────────────────────────────────────────────────────────
+  /pieces:
+    get:
+      tags: [Pieces]
+      summary: List all pieces
+      responses:
+        '200':
+          description: Array of pieces.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Piece'
+
+    post:
+      tags: [Pieces]
+      summary: Create a piece
+      security:
+        - ApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PieceInput'
+      responses:
+        '204':
+          description: Piece created.
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /pieces/{piece}:
+    parameters:
+      - name: piece
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+        description: Piece UUID.
+
+    get:
+      tags: [Pieces]
+      summary: Get a piece
+      responses:
+        '200':
+          description: Piece details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Piece'
+        '404':
+          description: Piece not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      tags: [Pieces]
+      summary: Update a piece
+      security:
+        - ApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PieceInput'
+      responses:
+        '204':
+          description: Piece updated.
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags: [Pieces]
+      summary: Delete a piece
+      security:
+        - ApiKey: []
+      responses:
+        '204':
+          description: Piece deleted.
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Players
+  # ─────────────────────────────────────────────────────────────────────────────
+  /players:
+    get:
+      tags: [Players]
+      summary: List all players
+      responses:
+        '200':
+          description: Array of players.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Player'
+
+    post:
+      tags: [Players]
+      summary: Create a player
+      security:
+        - ApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlayerInput'
+      responses:
+        '204':
+          description: Player created.
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /players/{player}:
+    parameters:
+      - name: player
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+        description: Player UUID.
+
+    get:
+      tags: [Players]
+      summary: Get a player
+      responses:
+        '200':
+          description: Player details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Player'
+        '404':
+          description: Player not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      tags: [Players]
+      summary: Update a player
+      security:
+        - ApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlayerInput'
+      responses:
+        '204':
+          description: Player updated.
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags: [Players]
+      summary: Delete a player
+      security:
+        - ApiKey: []
+      responses:
+        '204':
+          description: Player deleted.
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Games
+  # ─────────────────────────────────────────────────────────────────────────────
+  /games:
+    get:
+      tags: [Games]
+      summary: List all games
+      responses:
+        '200':
+          description: Array of games.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Game'
+
+    post:
+      tags: [Games]
+      summary: Create a game
+      security:
+        - ApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GameInput'
+      responses:
+        '204':
+          description: Game created.
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /games/{game}:
+    parameters:
+      - name: game
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+        description: Game UUID.
+
+    get:
+      tags: [Games]
+      summary: Get a game
+      responses:
+        '200':
+          description: Game details (includes board UUID).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameDetail'
+        '404':
+          description: Game not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      tags: [Games]
+      summary: Update a game
+      security:
+        - ApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GameUpdateInput'
+      responses:
+        '204':
+          description: Game updated.
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags: [Games]
+      summary: Delete a game
+      security:
+        - ApiKey: []
+      responses:
+        '204':
+          description: Game deleted.
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Roles
+  # ─────────────────────────────────────────────────────────────────────────────
+  /roles:
+    get:
+      tags: [Roles]
+      summary: List roles for a game
+      parameters:
+        - name: game
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+          description: Game UUID to filter roles by.
+      responses:
+        '200':
+          description: Array of roles.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Role'
+
+    post:
+      tags: [Roles]
+      summary: Create a role
+      security:
+        - ApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoleInput'
+      responses:
+        '204':
+          description: Role created.
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /roles/{role}:
+    parameters:
+      - name: role
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+        description: Role UUID.
+
+    get:
+      tags: [Roles]
+      summary: Get a role
+      responses:
+        '200':
+          description: Role details (includes game and piece UUIDs).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoleDetail'
+        '404':
+          description: Role not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      tags: [Roles]
+      summary: Update a role
+      security:
+        - ApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoleUpdateInput'
+      responses:
+        '204':
+          description: Role updated.
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags: [Roles]
+      summary: Delete a role
+      security:
+        - ApiKey: []
+      responses:
+        '204':
+          description: Role deleted.
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Game Pieces
+  # ─────────────────────────────────────────────────────────────────────────────
+  /gamePieces:
+    get:
+      tags: [GamePieces]
+      summary: List game pieces for a game
+      parameters:
+        - name: game
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+          description: Game UUID to filter game pieces by.
+      responses:
+        '200':
+          description: Array of game pieces.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GamePiece'
+
+    post:
+      tags: [GamePieces]
+      summary: Create a game piece
+      security:
+        - ApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GamePieceInput'
+      responses:
+        '204':
+          description: Game piece created.
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /gamePieces/{gamePiece}:
+    parameters:
+      - name: gamePiece
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+        description: GamePiece UUID.
+
+    get:
+      tags: [GamePieces]
+      summary: Get a game piece
+      responses:
+        '200':
+          description: GamePiece details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GamePiece'
+        '404':
+          description: GamePiece not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      tags: [GamePieces]
+      summary: Update a game piece
+      security:
+        - ApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GamePieceUpdateInput'
+      responses:
+        '204':
+          description: GamePiece updated.
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags: [GamePieces]
+      summary: Delete a game piece
+      security:
+        - ApiKey: []
+      responses:
+        '204':
+          description: GamePiece deleted.
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Sessions
+  # ─────────────────────────────────────────────────────────────────────────────
+  /sessions:
+    get:
+      tags: [Sessions]
+      summary: List all sessions
+      responses:
+        '200':
+          description: Array of sessions.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Session'
+
+    post:
+      tags: [Sessions]
+      summary: Create a session
+      description: >
+        Creates a new game session for the authenticated player. Returns the
+        session UUID and an 8-character join code.
+      security:
+        - UserKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SessionInput'
+      responses:
+        '200':
+          description: Session created, returns UUID and join code.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionCreated'
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /sessions/{session}:
+    parameters:
+      - name: session
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+        description: Session UUID.
+
+    get:
+      tags: [Sessions]
+      summary: Get a session
+      responses:
+        '200':
+          description: Session details (includes joinCode).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionDetail'
+        '404':
+          description: Session not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags: [Sessions]
+      summary: Delete a session
+      security:
+        - ApiKey: []
+      responses:
+        '204':
+          description: Session deleted.
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /sessions/{session}/join:
+    parameters:
+      - name: session
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+        description: Session UUID.
+
+    post:
+      tags: [Sessions]
+      summary: Join a session
+      description: >
+        Adds the authenticated player to the session with the specified role.
+        If all roles for the game are now filled, session pieces are
+        automatically initialized on their starting fields.
+      security:
+        - UserKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JoinSessionInput'
+      responses:
+        '204':
+          description: Player joined the session.
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Session not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /sessions/joinCode/{joinCode}:
+    parameters:
+      - name: joinCode
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 8
+          maxLength: 8
+        description: 8-character session join code.
+
+    get:
+      tags: [Sessions]
+      summary: Look up a session by join code
+      description: Redirects (302) to the session endpoint `/api/sessions/{uuid}`.
+      responses:
+        '302':
+          description: Redirect to the resolved session URL.
+          headers:
+            Location:
+              schema:
+                type: string
+              description: URL of the session, e.g. `/api/sessions/{uuid}`.
+        '404':
+          description: No session found for the given join code.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Gameplay
+  # ─────────────────────────────────────────────────────────────────────────────
+  /sessionBoard:
+    get:
+      tags: [Gameplay]
+      summary: Get session board state
+      description: >
+        Returns the current state of the board for the given session, with each
+        field's UUID, position, NFC ID, and the UUIDs of pieces currently on it.
+        Requires user authentication.
+      security:
+        - UserKey: []
+      parameters:
+        - name: session
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+          description: Session UUID.
+      responses:
+        '200':
+          description: Array of annotated board fields.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SessionBoardField'
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Session not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /sessionMoves:
+    get:
+      tags: [Gameplay]
+      summary: Get available moves
+      description: >
+        Returns the fields the authenticated player's piece can move to in the
+        current session. Adjacent fields (one step horizontally or vertically)
+        are included, each labelled "Move" (empty) or "Join" (occupied).
+        Requires user authentication.
+      security:
+        - UserKey: []
+      parameters:
+        - name: session
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+          description: Session UUID.
+      responses:
+        '200':
+          description: Array of available moves.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Move'
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Session not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /sessionMoves/walk:
+    post:
+      tags: [Gameplay]
+      summary: Walk to a target field
+      description: >
+        Moves the authenticated player's piece to the specified target field.
+        The target should be one of the fields returned by `GET /sessionMoves`.
+        Requires user authentication.
+      security:
+        - UserKey: []
+      parameters:
+        - name: session
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+          description: Session UUID.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WalkInput'
+      responses:
+        '200':
+          description: Move successful.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WalkResult'
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Session not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'

@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import '../models/game_scenario.dart';
 import '../models/game_state.dart';
 import '../widgets/token_and_board_app_bar.dart';
 
-/// Screen for selecting a game scenario
-class ScenarioSelectionScreen extends StatefulWidget {
+/// Screen shown at startup — single entry point to create/join an online game.
+class ScenarioSelectionScreen extends StatelessWidget {
   final GameState gameState;
   final VoidCallback onScenarioSelected;
 
@@ -15,49 +14,11 @@ class ScenarioSelectionScreen extends StatefulWidget {
     required this.onScenarioSelected,
   });
 
-  @override
-  State<ScenarioSelectionScreen> createState() =>
-      _ScenarioSelectionScreenState();
-}
-
-class _ScenarioSelectionScreenState extends State<ScenarioSelectionScreen> {
-  GameScenario? selectedScenario;
-
-  void _selectScenario(GameScenario scenario) {
-    setState(() {
-      selectedScenario = scenario;
-    });
-  }
-
-  void _confirmSelection() {
-    if (selectedScenario != null) {
-      widget.gameState.selectedScenario = selectedScenario;
-      // Route to puzzle grid setup for tutorial and classic scenarios
-      if (selectedScenario!.id == 'tutorial' ||
-          selectedScenario!.id == 'classic') {
-        widget.gameState.phase = GamePhase.puzzleGridSetup;
-      } else {
-        widget.gameState.phase = GamePhase.characterSelection;
-      }
-      widget.onScenarioSelected();
-    }
-  }
-
-  Color _getDifficultyColor(int level) {
-    switch (level) {
-      case 1:
-        return Colors.green;
-      case 2:
-        return Colors.blue;
-      case 3:
-        return Colors.orange;
-      case 4:
-        return Colors.red;
-      case 5:
-        return Colors.purple;
-      default:
-        return Colors.grey;
-    }
+  void _startOnlineGame() {
+    gameState.selectedApiGame = null;
+    gameState.selectedScenario = null;
+    gameState.phase = GamePhase.sessionSelection;
+    onScenarioSelected();
   }
 
   @override
@@ -65,192 +26,89 @@ class _ScenarioSelectionScreenState extends State<ScenarioSelectionScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF1a1a1a),
       appBar: TokenAndBoardAppBar(),
-      body: Column(
-        children: [
-          // Header
-          Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              children: [
-                SvgPicture.asset(
-                  'assets/images/TB_logo.svg',
-                  width: 64,
-                  height: 64,
-                  colorFilter: ColorFilter.mode(
-                    Colors.blue.shade300,
-                    BlendMode.srcIn,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Token & Board Adventures',
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Select a scenario to begin',
-                  style: TextStyle(color: Colors.white70, fontSize: 14),
-                  textAlign: TextAlign.center,
-                ),
-              ],
+      body: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            // Header
+            SvgPicture.asset(
+              'assets/images/TB_logo.svg',
+              width: 72,
+              height: 72,
+              colorFilter: ColorFilter.mode(
+                Colors.blue.shade300,
+                BlendMode.srcIn,
+              ),
             ),
-          ),
-          // Scenario List
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: GameScenario.predefined.length,
-              itemBuilder: (context, index) {
-                final scenario = GameScenario.predefined[index];
-                final isSelected = selectedScenario?.id == scenario.id;
-                final diffColor = _getDifficultyColor(scenario.difficultyLevel);
-
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: () => _selectScenario(scenario),
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
+            const SizedBox(height: 20),
+            Text(
+              'Token & Board Adventures',
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Ready to play? Start a new online game.',
+              style: TextStyle(color: Colors.white70, fontSize: 14),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            // Single action card
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: _startOnlineGame,
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(28),
+                  decoration: BoxDecoration(
+                    color: Colors.deepPurple.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: Colors.deepPurple.shade300,
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 72,
+                        height: 72,
                         decoration: BoxDecoration(
-                          color: isSelected
-                              ? diffColor.withOpacity(0.2)
-                              : const Color(0xFF2d2d2d),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: isSelected ? diffColor : Colors.white12,
-                            width: isSelected ? 2 : 1,
-                          ),
+                          color: Colors.deepPurple.withOpacity(0.25),
+                          shape: BoxShape.circle,
                         ),
-                        padding: const EdgeInsets.all(16),
-                        child: Row(
-                          children: [
-                            // Difficulty Badge
-                            Container(
-                              width: 60,
-                              height: 60,
-                              decoration: BoxDecoration(
-                                color: diffColor.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: diffColor, width: 2),
-                              ),
-                              child: Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.star,
-                                      color: diffColor,
-                                      size: 24,
-                                    ),
-                                    Text(
-                                      scenario.difficultyLevel.toString(),
-                                      style: TextStyle(
-                                        color: diffColor,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            // Scenario Info
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    scenario.name,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    scenario.description,
-                                    style: TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 4,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: diffColor.withOpacity(0.3),
-                                          borderRadius: BorderRadius.circular(
-                                            4,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          '${scenario.gridSize}x${scenario.gridSize} Grid',
-                                          style: TextStyle(
-                                            color: diffColor,
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                            // Selection Indicator
-                            if (isSelected)
-                              Icon(
-                                Icons.check_circle,
-                                color: diffColor,
-                                size: 32,
-                              ),
-                          ],
+                        child: Icon(
+                          Icons.public_rounded,
+                          color: Colors.deepPurple.shade200,
+                          size: 36,
                         ),
                       ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-          // Action Buttons
-          Container(
-            padding: const EdgeInsets.all(16),
-            color: const Color(0xFF2d2d2d),
-            child: Column(
-              children: [
-                ElevatedButton.icon(
-                  onPressed: selectedScenario != null
-                      ? _confirmSelection
-                      : null,
-                  icon: const Icon(Icons.play_arrow),
-                  label: const Text('Start'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    disabledBackgroundColor: Colors.grey.shade700,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 32,
-                      vertical: 12,
-                    ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Online Game',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Create a new session or join an existing one with a join code',
+                        style: TextStyle(color: Colors.white60, fontSize: 13),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
                   ),
                 ),
-              ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
