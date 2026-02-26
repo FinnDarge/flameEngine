@@ -722,7 +722,7 @@ class _InventoryOverlayState extends State<InventoryOverlay> {
       return Image.asset(
         item.iconPath!,
         fit: BoxFit.contain,
-        errorBuilder: (_, _, _) => _buildDefaultIcon(item),
+        errorBuilder: (context, error, stackTrace) => _buildDefaultIcon(item),
       );
     }
     return _buildDefaultIcon(item);
