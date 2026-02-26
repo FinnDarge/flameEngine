@@ -38,8 +38,9 @@ class GridComponent extends PositionComponent {
         final isCorner = isTopLeft || isTopRight || isBottomLeft || isBottomRight;
         
         String? cornerType;
-        if (isTopLeft) cornerType = 'topleft';
-        else if (isTopRight) cornerType = 'topright';
+        if (isTopLeft) {
+          cornerType = 'topleft';
+        } else if (isTopRight) cornerType = 'topright';
         else if (isBottomLeft) cornerType = 'bottomleft';
         else if (isBottomRight) cornerType = 'bottomright';
         

@@ -4,7 +4,8 @@ import 'player.dart';
 import 'game_grid.dart';
 import 'tile_type.dart';
 import 'game_scenario.dart';
-import '../services/management_api_service.dart' show ApiPlayer, ApiBoard, ApiPiece;
+import '../services/management_api_service.dart'
+    show ApiPlayer, ApiBoard, ApiPiece, ApiGame;
 import '../utils/sample_items.dart';
 
 /// Manages the overall game state
@@ -42,6 +43,21 @@ class GameState {
   /// Pieces loaded from the management API (characters with NFC tags).
   List<ApiPiece> apiPieces = const [];
 
+  /// Games loaded from the management API.
+  List<ApiGame> apiGames = const [];
+
+  /// The API game chosen on the scenario screen (used by session creation).
+  ApiGame? selectedApiGame;
+
+  /// Session ID for the current multiplayer session (create or join).
+  String? sessionId;
+
+  /// Session UUID returned by the backend after create/join.
+  String? sessionUuid;
+
+  /// The ApiPlayer that represents the local user (carries the x-user-key).
+  ApiPlayer? localApiPlayer;
+
   GameState({required this.grid, Vector2? goal})
     : goalPosition =
           goal ??
@@ -49,7 +65,7 @@ class GameState {
     // (4,4) in 1-indexed = (3,3) in 0-indexed
     // Create local player with unique ID
     localPlayer = Player(id: DateTime.now().millisecondsSinceEpoch.toString());
-    
+
     // Add debug starter items for testing inventory
     for (var item in SampleItems.getStarterItems()) {
       localPlayer.inventory.addItem(item);
@@ -77,7 +93,9 @@ class GameState {
   void addCharacter(Character character) {
     if (characters.length < 4 && !characters.contains(character)) {
       characters.add(character);
-      print('✓ Character added: ${character.characterClass.name} (class: ${character.characterClass}) (${characters.length}/4)');
+      print(
+        '✓ Character added: ${character.characterClass.name} (class: ${character.characterClass}) (${characters.length}/4)',
+      );
     }
   }
 
@@ -100,7 +118,7 @@ class GameState {
   /// but we need to map them to proper class types
   CharacterClass? _mapApiNameToCharacterClass(String apiName) {
     final lower = apiName.toLowerCase();
-    
+
     // Direct class name matches
     if (lower == 'warrior') return CharacterClass.warrior;
     if (lower == 'wizard') return CharacterClass.wizard;
@@ -108,7 +126,7 @@ class GameState {
     if (lower == 'engineer') return CharacterClass.engineer;
     if (lower == 'striker') return CharacterClass.striker;
     if (lower == 'vanguard') return CharacterClass.vanguard;
-    
+
     // Color name mappings (based on your physical NFC tags)
     if (lower == 'red') return CharacterClass.vanguard;
     if (lower == 'white') return CharacterClass.controller;
@@ -116,7 +134,7 @@ class GameState {
     if (lower == 'purple') return CharacterClass.striker;
     if (lower == 'green') return CharacterClass.striker;
     if (lower == 'orange') return CharacterClass.engineer;
-    
+
     // Fallback to warrior if unknown
     print('⚠️ Unknown API character name: $apiName, defaulting to warrior');
     return CharacterClass.warrior;
@@ -133,7 +151,7 @@ class GameState {
     // Find matching character class from API pieces FIRST
     CharacterClass? characterClass;
     String? characterName;
-    
+
     if (apiPieces.isNotEmpty) {
       print('🔍 Looking up NFC tag in API pieces: $nfcTagId');
       print('   (Also checking reversed: ${_reverseNfcTagId(nfcTagId)})');
@@ -149,7 +167,7 @@ class GameState {
           break;
         }
       }
-      
+
       if (characterClass == null) {
         print('❌ NFC tag not found in API pieces!');
         print('   Scanned tag: $nfcTagId');
@@ -169,7 +187,7 @@ class GameState {
           break;
         }
       }
-      
+
       if (characterClass == null) {
         print('⚠ Not a character NFC tag: $nfcTagId');
         return false;
@@ -195,7 +213,9 @@ class GameState {
     localPlayer.claimCharacter(character);
     addCharacter(character);
 
-    print('✓ Player claimed: ${character.characterClass.name} (API name: ${characterName ?? "enum"})');
+    print(
+      '✓ Player claimed: ${character.characterClass.name} (API name: ${characterName ?? "enum"})',
+    );
     return true;
   }
 
@@ -318,6 +338,7 @@ class GameState {
 enum GamePhase {
   scenarioSelection,
   puzzleGridSetup,
+  sessionSelection,
   characterSelection,
   characterStartPlacement,
   playing,
