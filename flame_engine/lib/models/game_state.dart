@@ -41,6 +41,12 @@ class GameState {
   /// Turn number
   int turnNumber = 1;
 
+
+  /// Lightweight party resources used by event resolution reducers/UI.
+  int eventEnergy = 0;
+  int eventObjective = 0;
+  int eventInstability = 0;
+
   /// Goal position
   final Vector2 goalPosition;
 

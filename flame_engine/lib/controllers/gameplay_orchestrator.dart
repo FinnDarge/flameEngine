@@ -3,6 +3,7 @@ import 'package:flame/components.dart';
 import '../models/character.dart';
 import '../models/game_state.dart';
 import '../models/grid_tile.dart';
+import '../models/tile_event.dart';
 import '../services/session_api_service.dart';
 import '../services/tile_input_provider.dart';
 
@@ -178,6 +179,73 @@ class GameplayOrchestrator {
     for (final entry in _timeline) {
       print('🧭 GameplayOrchestrator: $entry');
     }
+  }
+
+  TileEventOutcome? resolveEventChoice({
+    required Character character,
+    required GridTile tile,
+    required String choiceId,
+  }) {
+    final event = tile.event;
+    if (event == null || event.isCompleted) {
+      _log('Event reducer skipped: no unresolved event on tile.');
+      _flushTimeline();
+      return null;
+    }
+
+    final selectedOutcome = _resolveOutcome(event, choiceId);
+    final delta = selectedOutcome.stateDelta;
+    if (delta.hp != 0) {
+      if (delta.hp > 0) {
+        character.heal(delta.hp);
+      } else {
+        character.takeDamage(delta.hp.abs());
+      }
+    }
+
+    gameState.eventEnergy += delta.energy;
+    gameState.eventObjective += delta.credits;
+    gameState.eventInstability += delta.instability;
+
+    tile.event = event.copyWith(isCompleted: true);
+    _log('Event reducer applied choice "$choiceId" for event ${event.id}.');
+    _flushTimeline();
+    return selectedOutcome;
+  }
+
+  TileEventOutcome _resolveOutcome(TileEvent event, String choiceId) {
+    String? linkedOutcomeId;
+    for (final choice in event.choices) {
+      if (choice.id == choiceId) {
+        linkedOutcomeId = choice.linkedOutcomeId;
+        break;
+      }
+    }
+
+    if (linkedOutcomeId != null) {
+      for (final outcome in event.outcomes) {
+        if (outcome.id == linkedOutcomeId) {
+          return outcome;
+        }
+      }
+    }
+
+    for (final outcome in event.outcomes) {
+      if (outcome.isDefault) {
+        return outcome;
+      }
+    }
+
+    if (event.outcomes.isNotEmpty) {
+      return event.outcomes.first;
+    }
+
+    return TileEventOutcome(
+      id: '${event.id}_default',
+      text: event.flavor,
+      isDefault: true,
+      stateDelta: event.stateDelta,
+    );
   }
 }
 
