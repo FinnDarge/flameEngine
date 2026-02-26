@@ -1,4 +1,4 @@
-import 'dart:async' show Timer, unawaited;
+import 'dart:async' show StreamSubscription, Timer, unawaited;
 import 'package:flutter/material.dart';
 import 'package:flame/game.dart';
 import '../models/character.dart';
