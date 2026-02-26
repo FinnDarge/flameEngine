@@ -114,6 +114,9 @@ class _SessionSelectionScreenState extends State<SessionSelectionScreen> {
   Future<void> _joinSession() async {
     if (_selectedPlayer == null) return;
     final code = _joinCodeController.text.trim().toUpperCase();
+    // Unfocus before updating widget state that can disable the TextField on web.
+    _joinCodeFocusNode.unfocus();
+    FocusManager.instance.primaryFocus?.unfocus();
     setState(() {
       _joining = true;
       _joinError = null;
