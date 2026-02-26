@@ -14,6 +14,11 @@ class DungeonGame extends FlameGame {
   
   // Track character sprite components
   final Map<Character, CharacterSpriteComponent> characterSprites = {};
+  
+  // Track which characters are on which tiles (for sub-position assignment)
+  // Key: "row,col", Value: List of characters on that tile
+  final Map<String, List<Character>> _tilesOccupancy = {};
+  
   late final double cellSize;
 
   // Track last tapped NFC tag for movement flow
@@ -249,21 +254,84 @@ class DungeonGame extends FlameGame {
     // Wait for grid to finish loading (tile images, etc.)
     await gridComponent!.loaded;
     
+    // Determine sub-position based on how many characters are already on this tile
+    final subPos = _getNextAvailableSubPosition(character.position);
+    
     final sprite = CharacterSpriteComponent(
       character: character,
       cellSize: cellSize,
+      subPosition: subPos,
     );
     
     // Add sprite as a child of the grid component so it moves with the grid
     await gridComponent!.add(sprite);
     characterSprites[character] = sprite;
+    
+    // Track this character's position
+    _addCharacterToTile(character);
   }
   
   /// Update a character sprite's position
   void _updateCharacterSpritePosition(Character character) {
     final sprite = characterSprites[character];
     if (sprite != null) {
+      // Remove from old tile
+      _removeCharacterFromTile(character);
+      
+      // Reassign sub-positions for all characters on the new tile
+      _reassignSubPositionsForTile(character.position);
+      
+      // Add to new tile
+      _addCharacterToTile(character);
+      
       sprite.updatePosition();
+    }
+  }
+  
+  /// Get the tile key for tracking occupancy
+  String _getTileKey(Vector2 position) {
+    return '${position.y.toInt()},${position.x.toInt()}';
+  }
+  
+  /// Add a character to tile occupancy tracking
+  void _addCharacterToTile(Character character) {
+    final key = _getTileKey(character.position);
+    _tilesOccupancy.putIfAbsent(key, () => []);
+    if (!_tilesOccupancy[key]!.contains(character)) {
+      _tilesOccupancy[key]!.add(character);
+    }
+  }
+  
+  /// Remove a character from tile occupancy tracking
+  void _removeCharacterFromTile(Character character) {
+    // Find and remove from all tiles (in case position changed)
+    _tilesOccupancy.forEach((key, characters) {
+      characters.remove(character);
+    });
+  }
+  
+  /// Get the next available sub-position (0-3) for a tile
+  int _getNextAvailableSubPosition(Vector2 position) {
+    final key = _getTileKey(position);
+    final occupants = _tilesOccupancy[key] ?? [];
+    
+    // Return the count as the next position (0-3, max 4 characters)
+    final nextPos = occupants.length;
+    return nextPos.clamp(0, 3);
+  }
+  
+  /// Reassign sub-positions for all characters on a specific tile
+  void _reassignSubPositionsForTile(Vector2 position) {
+    final key = _getTileKey(position);
+    final occupants = _tilesOccupancy[key] ?? [];
+    
+    // Reassign sub-positions in order (0, 1, 2, 3)
+    for (int i = 0; i < occupants.length && i < 4; i++) {
+      final character = occupants[i];
+      final sprite = characterSprites[character];
+      if (sprite != null) {
+        sprite.updateSubPosition(i);
+      }
     }
   }
 
