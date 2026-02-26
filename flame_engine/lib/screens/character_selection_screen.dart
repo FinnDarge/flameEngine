@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/character.dart';
 import '../models/game_state.dart';
 import '../services/nfc_service.dart' show NFCService, kMockNfc;
-import '../services/mock_nfc_data.dart' show kMockNfcCharacterList, kVanguardNfcTagId;
+import '../services/mock_nfc_data.dart' show kMockNfcCharacterList;
 import '../widgets/token_and_board_app_bar.dart';
 
 /// Character selection screen for claiming a character
@@ -84,9 +84,16 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
     widget.nfcService.triggerMockScan(tagId);
   }
 
-  /// Quick dev shortcut - select Vanguard and continue immediately
+  /// Quick dev shortcut - select first character and continue immediately
   void _quickDevVanguard() {
-    _triggerMockScan(kVanguardNfcTagId);
+    // Use first available API piece or fall back to mock data
+    final pieces = widget.gameState.apiPieces;
+    if (pieces.isNotEmpty) {
+      _triggerMockScan(pieces.first.nfcTagId);
+    } else if (kMockNfcCharacterList.isNotEmpty) {
+      final firstMock = kMockNfcCharacterList.first;
+      _triggerMockScan(firstMock['tagId'] as String);
+    }
     // Give the mock scan a moment to process
     Future.delayed(const Duration(milliseconds: 100), () {
       widget.onCharacterSelected();

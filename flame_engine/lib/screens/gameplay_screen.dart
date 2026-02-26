@@ -93,91 +93,6 @@ class _GameplayScreenState extends State<GameplayScreen> {
     super.dispose();
   }
 
-  Widget _buildCharacterPortrait(Character character) {
-    final player = widget.gameState.localPlayer;
-    
-    return Container(
-      width: 72,
-      decoration: BoxDecoration(
-        color: const Color(0xCC1a1a1a),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: Color(character.color).withOpacity(0.8),
-          width: 2,
-        ),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
-            child: Image.asset(
-              character.characterClass.imagePath,
-              width: 68,
-              height: 68,
-              fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => Container(
-                width: 68,
-                height: 68,
-                color: Color(character.color).withOpacity(0.3),
-                child: Icon(
-                  Icons.person,
-                  color: Color(character.color),
-                  size: 36,
-                ),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
-            child: Column(
-              children: [
-                Text(
-                  character.name,
-                  style: TextStyle(
-                    color: Color(character.color),
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  textAlign: TextAlign.center,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 2),
-                // Health bar
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.5),
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.favorite,
-                        color: Colors.red,
-                        size: 10,
-                      ),
-                      const SizedBox(width: 2),
-                      Text(
-                        '${character.health}/${player.effectiveMaxHealth}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 9,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildTurnStatus(
     // ignore: avoid_positional_boolean_parameters
     bool isYourTurn,
@@ -188,8 +103,8 @@ class _GameplayScreenState extends State<GameplayScreen> {
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: isYourTurn
-            ? Colors.green.withOpacity(0.2)
-            : Colors.grey.withOpacity(0.2),
+            ? Colors.green.withValues(alpha: 0.2)
+            : Colors.grey.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Row(

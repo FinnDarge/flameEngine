@@ -146,51 +146,104 @@ class ManagementApiService {
   /// Fetch all three endpoints in parallel. On success, [isLoaded] becomes
   /// `true` and [boards], [pieces], [players] are populated.
   Future<void> load() async {
+    print('═══════════════════════════════════════════════════════════');
+    print('🌐 ManagementApiService: Starting API connection...');
+    print('   Base URL: $_kApiBase');
+    print('   Token: ${_kApiToken.substring(0, 8)}...');
+    print('═══════════════════════════════════════════════════════════');
+    
     try {
+      print('📡 Fetching data from 3 endpoints in parallel...');
+      print('   • GET $_kApiBase/boards');
+      print('   • GET $_kApiBase/pieces');
+      print('   • GET $_kApiBase/players');
+      
       final results = await Future.wait([
         http.get(Uri.parse('$_kApiBase/boards'), headers: _headers),
         http.get(Uri.parse('$_kApiBase/pieces'), headers: _headers),
         http.get(Uri.parse('$_kApiBase/players'), headers: _headers),
       ]);
+      
+      print('\n✓ API requests completed!');
 
+      print('\n📋 BOARDS endpoint:');
+      print('   Status: ${results[0].statusCode}');
       if (results[0].statusCode == 200) {
+        print('   ✓ Success!');
         final data = json.decode(results[0].body) as List<dynamic>;
         boards = data
             .map((e) => ApiBoard.fromJson(e as Map<String, dynamic>))
             .toList();
+        print('   Loaded ${boards.length} board(s)');
+      } else {
+        print('   ✗ Failed: ${results[0].reasonPhrase}');
+        print('   Response: ${results[0].body.substring(0, results[0].body.length > 200 ? 200 : results[0].body.length)}');
       }
 
+      print('\n🎲 PIECES endpoint:');
+      print('   Status: ${results[1].statusCode}');
       if (results[1].statusCode == 200) {
+        print('   ✓ Success!');
         final data = json.decode(results[1].body) as List<dynamic>;
         pieces = data
             .map((e) => ApiPiece.fromJson(e as Map<String, dynamic>))
             .toList();
+        print('   Loaded ${pieces.length} piece(s)');
+      } else {
+        print('   ✗ Failed: ${results[1].reasonPhrase}');
+        print('   Response: ${results[1].body.substring(0, results[1].body.length > 200 ? 200 : results[1].body.length)}');
       }
 
+      print('\n👥 PLAYERS endpoint:');
+      print('   Status: ${results[2].statusCode}');
       if (results[2].statusCode == 200) {
+        print('   ✓ Success!');
         final data = json.decode(results[2].body) as List<dynamic>;
         players = data
             .map((e) => ApiPlayer.fromJson(e as Map<String, dynamic>))
             .toList();
+        print('   Loaded ${players.length} player(s)');
+      } else {
+        print('   ✗ Failed: ${results[2].reasonPhrase}');
+        print('   Response: ${results[2].body.substring(0, results[2].body.length > 200 ? 200 : results[2].body.length)}');
       }
 
       _loaded = true;
-      print(
-        '✓ ManagementApiService loaded: '
-        '${boards.length} boards, ${pieces.length} pieces, '
-        '${players.length} players',
-      );
-      for (final p in pieces) {
-        print('  • $p');
+      
+      print('\n═══════════════════════════════════════════════════════════');
+      print('✅ API LOAD COMPLETE');
+      print('   Total: ${boards.length} boards, ${pieces.length} pieces, ${players.length} players');
+      print('═══════════════════════════════════════════════════════════');
+      
+      if (pieces.isNotEmpty) {
+        print('\n🎲 PIECES LOADED:');
+        for (final p in pieces) {
+          print('   • $p');
+        }
       }
-      for (final pl in players) {
-        print('  • $pl');
+      
+      if (players.isNotEmpty) {
+        print('\n👥 PLAYERS LOADED:');
+        for (final pl in players) {
+          print('   • $pl');
+        }
       }
-      for (final b in boards) {
-        print('  • $b');
+      
+      if (boards.isNotEmpty) {
+        print('\n📋 BOARDS LOADED:');
+        for (final b in boards) {
+          print('   • $b');
+        }
       }
-    } catch (e) {
-      print('⚠ ManagementApiService.load() failed: $e');
+      
+      print('\n');
+    } catch (e, stackTrace) {
+      print('\n═══════════════════════════════════════════════════════════');
+      print('❌ API LOAD FAILED');
+      print('   Error: $e');
+      print('   Stack trace:');
+      print('$stackTrace');
+      print('═══════════════════════════════════════════════════════════\n');
     }
   }
 

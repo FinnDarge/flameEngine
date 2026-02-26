@@ -224,10 +224,13 @@ class GameGrid {
     for (int row = 0; row < rows; row++) {
       for (int col = 0; col < columns; col++) {
         setTileType(row, col, TileType.floor);
-        tiles[row][col].isRevealed = true;
+        tiles[row][col].isRevealed = false; // Fog of war - tiles start hidden
         tiles[row][col].nfcTagId = 'cell_${row + 1}_${col + 1}'; // Fixed NFC tag per cell
       }
     }
+    
+    // Reveal starting tile
+    tiles[0][0].isRevealed = true;
   }
 
   @override

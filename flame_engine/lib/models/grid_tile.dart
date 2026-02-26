@@ -1,6 +1,8 @@
 import 'package:flame/components.dart';
 import 'tile_type.dart';
 import 'character.dart';
+import 'enemy.dart';
+import 'tile_event.dart';
 
 /// Represents a single room (cell) in the game grid
 /// Each room is 10cm x 10cm on the physical board
@@ -14,7 +16,7 @@ class GridTile {
   /// NFC tag ID associated with this room (if any)
   String? nfcTagId;
   
-  /// Whether this room has been revealed/discovered
+  /// Whether this room has been revealed/discovered (fog of war)
   bool isRevealed;
   
   /// Whether this room is currently occupied by a player
@@ -22,6 +24,12 @@ class GridTile {
 
   /// List of characters currently on this tile
   List<Character> charactersHere;
+  
+  /// Enemy on this tile (if any)
+  Enemy? enemy;
+  
+  /// Event on this tile (if any)
+  TileEvent? event;
   
   /// Additional metadata for special rooms
   Map<String, dynamic>? metadata;
@@ -33,6 +41,8 @@ class GridTile {
     this.isRevealed = false,
     this.hasPlayer = false,
     List<Character>? charactersHere,
+    this.enemy,
+    this.event,
     this.metadata,
   }) : charactersHere = charactersHere ?? [];
 
@@ -44,6 +54,8 @@ class GridTile {
     bool? isRevealed,
     bool? hasPlayer,
     List<Character>? charactersHere,
+    Enemy? enemy,
+    TileEvent? event,
     Map<String, dynamic>? metadata,
   }) {
     return GridTile(
@@ -53,6 +65,8 @@ class GridTile {
       isRevealed: isRevealed ?? this.isRevealed,
       hasPlayer: hasPlayer ?? this.hasPlayer,
       charactersHere: charactersHere ?? this.charactersHere,
+      enemy: enemy ?? this.enemy,
+      event: event ?? this.event,
       metadata: metadata ?? this.metadata,
     );
   }

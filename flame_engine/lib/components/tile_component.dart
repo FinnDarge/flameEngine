@@ -15,6 +15,8 @@ class TileComponent extends PositionComponent {
   late RectangleComponent background;
   late RectangleComponent border;
   SpriteComponent? sprite;
+  RectangleComponent? fogOverlay;
+  CircleComponent? eventIndicator;
 
   TileComponent({
     required this.tile,
@@ -82,13 +84,64 @@ class TileComponent extends PositionComponent {
     );
     add(border);
 
+    // Add fog of war overlay if tile not revealed
+    if (!tile.isRevealed) {
+      fogOverlay = RectangleComponent(
+        size: size,
+        paint: Paint()..color = Colors.black.withValues(alpha: 0.85),
+        priority: 5, // Above background but below characters
+      );
+      add(fogOverlay!);
+    }
+
+    // Add event indicator if tile has an event
+    if (tile.event != null && tile.isRevealed && !tile.event!.isCompleted) {
+      eventIndicator = CircleComponent(
+        radius: cellSize * 0.12,
+        paint: Paint()..color = tile.event!.type.color,
+        position: Vector2(cellSize * 0.85, cellSize * 0.15),
+        anchor: Anchor.center,
+        priority: 6,
+      );
+      add(eventIndicator!);
+    }
+
     // NFC markers removed - not needed for visual display
     // Character sprites are shown on top of grid
   }
 
   /// Updates the visual representation when tile state changes
   void updateTile() {
-    // Note: We don't change the background tile image as it's static
-    // Character sprites are handled separately in DungeonGame
+    // Update fog of war
+    if (tile.isRevealed && fogOverlay != null) {
+      remove(fogOverlay!);
+      fogOverlay = null;
+    } else if (!tile.isRevealed && fogOverlay == null) {
+      fogOverlay = RectangleComponent(
+        size: size,
+        paint: Paint()..color = Colors.black.withValues(alpha: 0.85),
+        priority: 5,
+      );
+      add(fogOverlay!);
+    }
+
+    // Update event indicator
+    final shouldShowEvent = tile.event != null && 
+                            tile.isRevealed && 
+                            !tile.event!.isCompleted;
+    
+    if (shouldShowEvent && eventIndicator == null) {
+      eventIndicator = CircleComponent(
+        radius: cellSize * 0.12,
+        paint: Paint()..color = tile.event!.type.color,
+        position: Vector2(cellSize * 0.85, cellSize * 0.15),
+        anchor: Anchor.center,
+        priority: 6,
+      );
+      add(eventIndicator!);
+    } else if (!shouldShowEvent && eventIndicator != null) {
+      remove(eventIndicator!);
+      eventIndicator = null;
+    }
   }
 }

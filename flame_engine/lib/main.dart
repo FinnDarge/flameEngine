@@ -3,7 +3,6 @@ import 'models/game_state.dart';
 import 'models/dungeon_game.dart';
 import 'services/nfc_service.dart';
 import 'services/management_api_service.dart';
-import 'services/mock_nfc_data.dart' show applyApiData;
 import 'screens/scenario_selection_screen.dart';
 import 'screens/grid_setup_screen.dart';
 import 'screens/character_selection_screen.dart';
@@ -27,7 +26,7 @@ class GameNavigator extends StatefulWidget {
 class _GameNavigatorState extends State<GameNavigator> {
   // Set to true to skip backend API calls and use hardcoded mock data.
   // Toggle back to false when the server is reachable again.
-  static const bool _kSkipApi = true;
+  static const bool _kSkipApi = false;
 
   late DungeonGame game;
   final NFCService nfcService = NFCService();
@@ -42,9 +41,22 @@ class _GameNavigatorState extends State<GameNavigator> {
 
   Future<void> _loadApiThenStart() async {
     if (!_kSkipApi) {
+      print('\n🚀 App starting with REAL API mode (_kSkipApi = false)');
+      print('   Using API pieces directly (no mock data)\n');
       await _api.load();
-      // Overwrite mock NFC character data with live pieces from the API
-      applyApiData(_api);
+      print('\n📦 API data loaded:');
+      print('   Players: ${_api.players.length}');
+      print('   Boards: ${_api.boards.length}');
+      print('   Pieces: ${_api.pieces.length}');
+      if (_api.pieces.isNotEmpty) {
+        print('   Available pieces:');
+        for (var piece in _api.pieces) {
+          print('      - ${piece.name}: ${piece.nfcTagId}');
+        }
+      }
+    } else {
+      print('\n🚀 App starting with MOCK mode (_kSkipApi = true)');
+      print('   Skipping API calls, using hardcoded data\n');
     }
 
     // Build the game with default 4x4 grid (will be recreated when scenario is selected)
@@ -53,13 +65,28 @@ class _GameNavigatorState extends State<GameNavigator> {
     final cols = board?.width ?? 4;
     game = DungeonGame(rows: rows, columns: cols);
 
-    // Store API players in game state for multiplayer use
+    // Store API data in game state
     game.gameState.apiPlayers = _kSkipApi
         ? const []
         : List.unmodifiable(_api.players);
     game.gameState.apiBoards = _kSkipApi
         ? const []
         : List.unmodifiable(_api.boards);
+    game.gameState.apiPieces = _kSkipApi
+        ? const []
+        : List.unmodifiable(_api.pieces);
+
+    print('\n✅ Game state initialized:');
+    print('   gameState.apiPlayers: ${game.gameState.apiPlayers.length}');
+    print('   gameState.apiBoards: ${game.gameState.apiBoards.length}');
+    print('   gameState.apiPieces: ${game.gameState.apiPieces.length}');
+    if (game.gameState.apiPieces.isNotEmpty) {
+      print('   Pieces in game state:');
+      for (var piece in game.gameState.apiPieces) {
+        print('      - ${piece.name}: ${piece.nfcTagId}');
+      }
+    }
+    print('');
 
     if (mounted) setState(() => _apiLoading = false);
   }
@@ -96,6 +123,7 @@ class _GameNavigatorState extends State<GameNavigator> {
       // Store old game state data that needs to persist
       final apiPlayers = game.gameState.apiPlayers;
       final apiBoards = game.gameState.apiBoards;
+      final apiPieces = game.gameState.apiPieces;
       final selectedScenario = game.gameState.selectedScenario;
       final phase = game.gameState.phase;
       
@@ -105,8 +133,12 @@ class _GameNavigatorState extends State<GameNavigator> {
       // Restore persisted data
       game.gameState.apiPlayers = apiPlayers;
       game.gameState.apiBoards = apiBoards;
+      game.gameState.apiPieces = apiPieces;
       game.gameState.selectedScenario = selectedScenario;
       game.gameState.phase = phase;
+      
+      print('🔄 Game recreated with scenario: ${scenario.name}');
+      print('   Restored ${apiPieces.length} API pieces to game state');
     }
     
     setState(() {});
