@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/character.dart';
 import '../models/game_state.dart';
 import '../services/nfc_service.dart' show NFCService, kMockNfc;
-import '../services/mock_nfc_data.dart' show kMockNfcCharacterList;
 import '../services/session_api_service.dart' show SessionApiService, ApiRole;
-import '../services/management_api_service.dart' show ApiPiece;
 import '../widgets/token_and_board_app_bar.dart';
 import '../widgets/session_info_footer.dart';
 

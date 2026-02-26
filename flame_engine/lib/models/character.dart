@@ -40,12 +40,12 @@ class Character {
     int? maxHealth,
     int? attack,
     int? defense,
-  }) : maxHealth = maxHealth ?? characterClass.maxHealth,
-       attack = attack ?? characterClass.attack,
-       defense = defense ?? characterClass.defense,
-       health = maxHealth ?? characterClass.maxHealth,
-       inventory = [],
-       isDefeated = false;
+  })  : maxHealth = maxHealth ?? characterClass.maxHealth,
+        attack = attack ?? characterClass.attack,
+        defense = defense ?? characterClass.defense,
+        health = maxHealth ?? characterClass.maxHealth,
+        inventory = [],
+        isDefeated = false;
 
   /// Take damage
   void takeDamage(int damage) {
@@ -114,13 +114,13 @@ enum CharacterClass {
   int get color {
     switch (this) {
       case CharacterClass.controller:
-        return 0xFF4444FF; // Blue
+        return 0xFFFFFFFF; // White
       case CharacterClass.engineer:
-        return 0xFFFFAA44; // Orange
+        return 0xFF2196F3; // Blue
       case CharacterClass.striker:
-        return 0xFF44FF44; // Green
+        return 0xFF9C27B0; // Purple
       case CharacterClass.vanguard:
-        return 0xFF888888; // Gray
+        return 0xFFF44336; // Red
     }
   }
 

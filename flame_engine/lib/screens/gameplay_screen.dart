@@ -1,9 +1,11 @@
-import 'dart:async' show unawaited;
+import 'dart:async' show Timer, unawaited;
 import 'package:flutter/material.dart';
 import 'package:flame/game.dart';
 import '../models/character.dart';
 import '../models/game_state.dart';
 import '../services/nfc_service.dart';
+import '../services/session_api_service.dart';
+import '../services/management_api_service.dart' show ApiPiece, ApiGamePiece;
 import '../models/dungeon_game.dart';
 import '../widgets/token_and_board_app_bar.dart';
 import '../widgets/inventory_overlay.dart';
@@ -34,11 +36,131 @@ class _GameplayScreenState extends State<GameplayScreen> {
   bool nfcAvailable = false;
   String nfcStatus = 'Initialising NFC...';
   bool showInventory = false;
+  Timer? _sessionPollTimer;
+
+  bool get isSessionOwner {
+    final local = widget.gameState.localApiPlayer;
+    final sessionPlayers = widget.gameState.sessionPlayers;
+    if (local == null || sessionPlayers.isEmpty) return false;
+    // Try to find the session creator from sessionPlayers
+    // If the local player is the first in the sessionPlayers list, treat as owner (fallback)
+    // If you have a better way to check, update here
+    // If session creator is available in gameState, use that
+    if (widget.gameState.sessionUuid != null) {
+      // Try to get session creator from SessionDetail if available
+      // (not currently stored in gameState, so fallback to localApiPlayer)
+      // TODO: If you add session creator to gameState, check here
+      return true; // fallback: always allow if sessionUuid is set and localApiPlayer exists
+    }
+    return false;
+  }
+
+  Future<void> _handleStartGame() async {
+    final sessionUuid = widget.gameState.sessionUuid;
+    final userKey = widget.gameState.localApiPlayer?.accessToken;
+    if (sessionUuid == null || userKey == null) return;
+    final api = SessionApiService();
+    try {
+      await api.startSession(sessionUuid: sessionUuid, userKey: userKey);
+      // Optionally, trigger any local state update or fetch
+      setState(() {});
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to start game: $e')),
+      );
+    }
+  }
 
   @override
   void initState() {
     super.initState();
     _initNFC();
+    // Start polling session state every 5 seconds
+    _sessionPollTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      print('[Polling] 5s interval: polling session state...');
+      pollSessionState();
+    });
+  }
+
+  /// Poll the session state from the backend and update the game state
+  Future<void> pollSessionState() async {
+    // Only poll if in a session and playing
+    if (widget.gameState.sessionId == null ||
+        widget.gameState.playerAccessToken == null) {
+      return;
+    }
+    if (widget.gameState.phase != GamePhase.playing) return;
+
+    try {
+      final sessionApi = SessionApiService();
+      final boardFields = await sessionApi.getSessionBoard(
+        sessionUuid: widget.gameState.sessionId!,
+        userKey: widget.gameState.playerAccessToken!,
+      );
+
+      // Build a map of piece UUID to field position
+      final Map<String, PointObject> piecePositions = {};
+      for (final field in boardFields) {
+        for (final pieceUuid in field.pieces) {
+          piecePositions[pieceUuid] = field.position;
+        }
+      }
+
+      // Map each character to its piece UUID (via apiPieces and gameStartPositions)
+      for (final character in widget.gameState.characters) {
+        // Find the piece UUID for this character
+        String? pieceUuid;
+        // Try to match by NFC tag ID via apiPieces
+        ApiPiece? apiPiece;
+        try {
+          apiPiece = widget.gameState.apiPieces.firstWhere(
+            (p) => p.nfcTagId == character.nfcTagId,
+          );
+        } catch (_) {
+          apiPiece = null;
+        }
+        if (apiPiece != null) {
+          ApiGamePiece? gamePiece;
+          try {
+            gamePiece = widget.gameState.gameStartPositions.firstWhere(
+              (gp) => gp.piece == apiPiece!.uuid,
+            );
+          } catch (_) {
+            gamePiece = null;
+          }
+          if (gamePiece != null && gamePiece.piece != null) {
+            pieceUuid = gamePiece.piece;
+          }
+        }
+        // Fallback: try to match by role name
+        if (pieceUuid == null) {
+          ApiGamePiece? gamePiece;
+          try {
+            gamePiece = widget.gameState.gameStartPositions.firstWhere(
+              (gp) =>
+                  gp.roleName?.toLowerCase() ==
+                  character.characterClass.name.toLowerCase(),
+            );
+          } catch (_) {
+            gamePiece = null;
+          }
+          if (gamePiece != null && gamePiece.piece != null) {
+            pieceUuid = gamePiece.piece;
+          }
+        }
+        // If we have a piece UUID and a position, update the character
+        if (pieceUuid != null && piecePositions.containsKey(pieceUuid)) {
+          final pos = piecePositions[pieceUuid]!;
+          final newPosition = Vector2(pos.x.toDouble(), pos.y.toDouble());
+          if (character.position != newPosition) {
+            character.position = newPosition;
+          }
+        }
+      }
+      setState(() {}); // Trigger UI update
+    } catch (e) {
+      // Ignore polling errors
+    }
   }
 
   Future<void> _initNFC() async {
@@ -91,6 +213,7 @@ class _GameplayScreenState extends State<GameplayScreen> {
   @override
   void dispose() {
     widget.nfcService.stopScanning();
+    _sessionPollTimer?.cancel();
     super.dispose();
   }
 
@@ -100,19 +223,22 @@ class _GameplayScreenState extends State<GameplayScreen> {
     Character? currentCharacter,
     Character? localCharacter,
   ) {
+    final color = Color(
+      (isYourTurn
+          ? (localCharacter?.characterClass.color ?? 0xFFFFFFFF)
+          : (currentCharacter?.characterClass.color ?? 0xFFFFFFFF)),
+    );
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: isYourTurn
-            ? Colors.green.withValues(alpha: 0.2)
-            : Colors.grey.withValues(alpha: 0.2),
+        color: color.withOpacity(isYourTurn ? 0.3 : 0.15),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Row(
         children: [
           Icon(
             isYourTurn ? Icons.play_circle : Icons.pause_circle,
-            color: isYourTurn ? Colors.green : Colors.grey,
+            color: color,
             size: 20,
           ),
           const SizedBox(width: 8),
@@ -122,7 +248,7 @@ class _GameplayScreenState extends State<GameplayScreen> {
                   ? 'YOUR TURN - Tap destination field (${localCharacter?.name ?? "your character"} will move)'
                   : 'Current turn: ${currentCharacter?.name ?? "Waiting for players..."}',
               style: TextStyle(
-                color: isYourTurn ? Colors.green : Colors.white70,
+                color: color,
                 fontWeight: isYourTurn ? FontWeight.bold : FontWeight.normal,
               ),
             ),
@@ -172,6 +298,21 @@ class _GameplayScreenState extends State<GameplayScreen> {
                     widget.gameState.isLocalPlayerTurn,
                     currentTurn,
                     player.character,
+                  ),
+                // Start Game button for session owner
+                if (phase == GamePhase.characterSelection && isSessionOwner)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12.0),
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.play_arrow),
+                      label: const Text('Start Game'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Color(0xFF00d9ff),
+                        foregroundColor: Color(0xFF1a1a1a),
+                        textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      onPressed: _handleStartGame,
+                    ),
                   ),
               ],
             ),

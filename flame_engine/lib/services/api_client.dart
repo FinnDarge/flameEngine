@@ -41,18 +41,18 @@ class ApiClient {
   // ── Header builders ─────────────────────────────────────────────────────────
 
   Map<String, String> _adminHeaders() => {
-    'x-api-key': apiKey,
-    'Accept': 'application/json',
-    'Content-Type': 'application/json',
-  };
+        'x-api-key': apiKey,
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      };
 
   Map<String, String> _readHeaders() => {'Accept': 'application/json'};
 
   Map<String, String> _userHeaders(String userKey) => {
-    'x-user-key': userKey,
-    'Accept': 'application/json',
-    'Content-Type': 'application/json',
-  };
+        'x-user-key': userKey,
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      };
 
   // ── HTTP helpers ─────────────────────────────────────────────────────────────
 
@@ -143,16 +143,30 @@ class ApiClient {
   Future<Map<String, dynamic>?> userPost(
     String path,
     Map<String, dynamic> body,
-    String userKey,
-  ) async {
+    String userKey, {
+    Map<String, String>? queryParams,
+  }) async {
     final resp = await httpClient.post(
-      _uri(path),
+      _uri(path, queryParams),
       headers: _userHeaders(userKey),
       body: json.encode(body),
     );
     _assertSuccess(resp);
     if (resp.statusCode == 204 || resp.body.isEmpty) return null;
     return json.decode(resp.body) as Map<String, dynamic>;
+  }
+
+  /// GET a list resource with user key (player-scoped).
+  Future<List<Map<String, dynamic>>> userGetList(
+    String path,
+    Map<String, String> queryParams,
+    String userKey,
+  ) async {
+    final resp = await httpClient.get(
+      _uri(path, queryParams),
+      headers: _userHeaders(userKey),
+    );
+    return _decodeList(resp);
   }
 
   /// GET with redirect-following – used for joinCode lookup (302 → 200).

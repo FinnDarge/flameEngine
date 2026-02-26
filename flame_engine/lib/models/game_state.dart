@@ -140,13 +140,11 @@ class GameState {
     if (lower == 'striker') return CharacterClass.striker;
     if (lower == 'vanguard') return CharacterClass.vanguard;
 
-    // Color name mappings (based on your physical NFC tags)
+    // Color name mappings (consistent: red-vanguard, white-controller, blue-engineer, purple-striker)
     if (lower == 'red') return CharacterClass.vanguard;
     if (lower == 'white') return CharacterClass.controller;
     if (lower == 'blue') return CharacterClass.engineer;
     if (lower == 'purple') return CharacterClass.striker;
-    if (lower == 'green') return CharacterClass.striker;
-    if (lower == 'orange') return CharacterClass.engineer;
 
     // Fallback to controller if unknown
     print('⚠️ Unknown API character name: $apiName, defaulting to controller');

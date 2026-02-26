@@ -189,27 +189,67 @@ components:
         name:
           type: string
           maxLength: 255
-      required: [uuid, name]
+        board:
+          $ref: '#/components/schemas/UUID'
+        code:
+          type: string
+          maxLength: 255
+        inventoryLimit:
+          type: integer
+          minimum: 0
+        weaponLimit:
+          type: integer
+          minimum: 0
+        armorLimit:
+          type: integer
+          minimum: 0
+      required: [uuid, name, board, code, inventoryLimit, weaponLimit, armorLimit]
 
     GameInput:
       type: object
       properties:
         board:
           $ref: '#/components/schemas/UUID'
+        code:
+          type: string
+          minLength: 1
+          maxLength: 255
         name:
           type: string
           minLength: 1
           maxLength: 255
-      required: [board, name]
+        inventoryLimit:
+          type: integer
+          minimum: 0
+        weaponLimit:
+          type: integer
+          minimum: 0
+        armorLimit:
+          type: integer
+          minimum: 0
+      required: [board, code, name, inventoryLimit, weaponLimit, armorLimit]
 
     GameUpdateInput:
       type: object
       properties:
+        code:
+          type: string
+          minLength: 1
+          maxLength: 255
         name:
           type: string
           minLength: 1
           maxLength: 255
-      required: [name]
+        inventoryLimit:
+          type: integer
+          minimum: 0
+        weaponLimit:
+          type: integer
+          minimum: 0
+        armorLimit:
+          type: integer
+          minimum: 0
+      required: [code, name, inventoryLimit, weaponLimit, armorLimit]
 
     Role:
       type: object
@@ -355,10 +395,138 @@ components:
           $ref: '#/components/schemas/UUID'
         board:
           $ref: '#/components/schemas/UUID'
+        code:
+          type: string
+          maxLength: 255
         name:
           type: string
           maxLength: 255
-      required: [uuid, board, name]
+        inventoryLimit:
+          type: integer
+          minimum: 0
+        weaponLimit:
+          type: integer
+          minimum: 0
+        armorLimit:
+          type: integer
+          minimum: 0
+      required: [uuid, board, code, name, inventoryLimit, weaponLimit, armorLimit]
+
+    Item:
+      type: object
+      properties:
+        uuid:
+          $ref: '#/components/schemas/UUID'
+        name:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 1024
+        type:
+          type: string
+          enum: [weapon, armor, consumable]
+        attack:
+          type: integer
+          minimum: 0
+        defense:
+          type: integer
+          minimum: 0
+        consumableHealth:
+          type: integer
+          minimum: 0
+      required: [uuid, name, description, type, attack, defense, consumableHealth]
+
+    ItemInput:
+      type: object
+      properties:
+        game:
+          $ref: '#/components/schemas/UUID'
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        description:
+          type: string
+          minLength: 1
+          maxLength: 1024
+        type:
+          type: string
+          enum: [weapon, armor, consumable]
+        attack:
+          type: integer
+          minimum: 0
+        defense:
+          type: integer
+          minimum: 0
+        consumableHealth:
+          type: integer
+          minimum: 0
+      required: [game, name, description, type, attack, defense, consumableHealth]
+
+    ItemUpdateInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        description:
+          type: string
+          minLength: 1
+          maxLength: 1024
+        type:
+          type: string
+          enum: [weapon, armor, consumable]
+        attack:
+          type: integer
+          minimum: 0
+        defense:
+          type: integer
+          minimum: 0
+        consumableHealth:
+          type: integer
+          minimum: 0
+      required: [name, description, type, attack, defense, consumableHealth]
+
+    GameItem:
+      type: object
+      properties:
+        uuid:
+          $ref: '#/components/schemas/UUID'
+        item:
+          $ref: '#/components/schemas/UUID'
+        itemName:
+          oneOf:
+            - type: string
+            - type: 'null'
+        initialField:
+          $ref: '#/components/schemas/UUID'
+        initialFieldPosition:
+          oneOf:
+            - $ref: '#/components/schemas/PointObject'
+            - type: 'null'
+      required: [uuid, item, itemName, initialField, initialFieldPosition]
+
+    GameItemInput:
+      type: object
+      properties:
+        game:
+          $ref: '#/components/schemas/UUID'
+        item:
+          $ref: '#/components/schemas/UUID'
+        initialField:
+          $ref: '#/components/schemas/UUID'
+      required: [game, item, initialField]
+
+    GameItemUpdateInput:
+      type: object
+      properties:
+        item:
+          $ref: '#/components/schemas/UUID'
+        initialField:
+          $ref: '#/components/schemas/UUID'
+      required: [item, initialField]
 
     RoleDetail:
       type: object
@@ -800,6 +968,113 @@ paths:
                 $ref: '#/components/schemas/Error'
 
   # ─────────────────────────────────────────────────────────────────────────────
+  # Items
+  # ─────────────────────────────────────────────────────────────────────────────
+  /items:
+    get:
+      tags: [Items]
+      summary: List items for a game
+      parameters:
+        - name: game
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+          description: Game UUID to filter items by.
+      responses:
+        '200':
+          description: Array of items.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Item'
+
+    post:
+      tags: [Items]
+      summary: Create an item
+      security:
+        - ApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ItemInput'
+      responses:
+        '204':
+          description: Item created.
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /items/{item}:
+    parameters:
+      - name: item
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+        description: Item UUID.
+
+    get:
+      tags: [Items]
+      summary: Get an item
+      responses:
+        '200':
+          description: Item details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Item'
+        '404':
+          description: Item not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      tags: [Items]
+      summary: Update an item
+      security:
+        - ApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ItemUpdateInput'
+      responses:
+        '204':
+          description: Item updated.
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags: [Items]
+      summary: Delete an item
+      security:
+        - ApiKey: []
+      responses:
+        '204':
+          description: Item deleted.
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ─────────────────────────────────────────────────────────────────────────────
   # Players
   # ─────────────────────────────────────────────────────────────────────────────
   /players:
@@ -1214,6 +1489,113 @@ paths:
                 $ref: '#/components/schemas/Error'
 
   # ─────────────────────────────────────────────────────────────────────────────
+  # Game Items
+  # ─────────────────────────────────────────────────────────────────────────────
+  /gameItems:
+    get:
+      tags: [GameItems]
+      summary: List game items for a game
+      parameters:
+        - name: game
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+          description: Game UUID to filter game items by.
+      responses:
+        '200':
+          description: Array of game items.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GameItem'
+
+    post:
+      tags: [GameItems]
+      summary: Create a game item
+      security:
+        - ApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GameItemInput'
+      responses:
+        '204':
+          description: Game item created.
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /gameItems/{gameItem}:
+    parameters:
+      - name: gameItem
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+        description: GameItem UUID.
+
+    get:
+      tags: [GameItems]
+      summary: Get a game item
+      responses:
+        '200':
+          description: GameItem details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameItem'
+        '404':
+          description: GameItem not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      tags: [GameItems]
+      summary: Update a game item
+      security:
+        - ApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GameItemUpdateInput'
+      responses:
+        '204':
+          description: GameItem updated.
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags: [GameItems]
+      summary: Delete a game item
+      security:
+        - ApiKey: []
+      responses:
+        '204':
+          description: GameItem deleted.
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ─────────────────────────────────────────────────────────────────────────────
   # Sessions
   # ─────────────────────────────────────────────────────────────────────────────
   /sessions:
@@ -1354,6 +1736,40 @@ paths:
                 $ref: '#/components/schemas/Error'
         '404':
           description: Session not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /sessions/{session}/start:
+    parameters:
+      - name: session
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+        description: Session UUID.
+
+    post:
+      tags: [Sessions]
+      summary: Start a session
+      description: >
+        Starts the session if it is owned by the authenticated player and is ready
+        (all roles filled with players, all pieces initialized on their starting fields).
+        Marks the session as started.
+      security:
+        - UserKey: []
+      responses:
+        '204':
+          description: Session started.
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Session not found or not owned by user.
           content:
             application/json:
               schema:

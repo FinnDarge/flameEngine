@@ -167,20 +167,19 @@ class DungeonGame extends FlameGame {
         // API-driven movement
         print('🌐 Submitting move to backend API...');
 
-        final apiService = ManagementApiService();
-        final result = await apiService.walkMove(
-          sessionId: gameState.sessionId!,
-          targetFieldUuid: tile.fieldUuid!,
-          accessToken: gameState.playerAccessToken!,
-        );
-
-        if (result == null) {
-          print('❌ Move rejected by server!');
+        final sessionApi = SessionApiService();
+        try {
+          final result = await sessionApi.walkToField(
+            sessionUuid: gameState.sessionId!,
+            targetFieldUuid: tile.fieldUuid!,
+            userKey: gameState.playerAccessToken!,
+          );
+          print('✓ Move accepted by server! ${result.message}');
+          // Backend validated the move, update local state
+        } catch (e) {
+          print('❌ Move rejected by server! $e');
           return;
         }
-
-        print('✓ Move accepted by server!');
-        // Backend validated the move, update local state
       } else {
         // Local-only movement (no API session)
         print('🎮 Local movement validation...');
@@ -230,6 +229,12 @@ class DungeonGame extends FlameGame {
 
       // For each session player that isn't the local player, create a character
       for (final sessionPlayer in sessionPlayers) {
+        // Skip if this session player is the local player
+        if (gameState.localApiPlayer != null &&
+            sessionPlayer.player == gameState.localApiPlayer!.uuid) {
+          continue;
+        }
+
         // Find the matching character class from the role name
         CharacterClass? characterClass;
 

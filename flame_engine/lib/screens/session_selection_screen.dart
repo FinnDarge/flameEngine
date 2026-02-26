@@ -115,10 +115,6 @@ class _SessionSelectionScreenState extends State<SessionSelectionScreen> {
   Future<void> _joinSession() async {
     if (_selectedPlayer == null) return;
     final code = _joinCodeController.text.trim().toUpperCase();
-    if (code.length != 8) {
-      setState(() => _joinError = 'Enter the full 8-character join code');
-      return;
-    }
     setState(() {
       _joining = true;
       _joinError = null;

@@ -163,6 +163,13 @@ class ApiGamePiece {
       );
     }
 
+    final rawInitialFieldPosition = json['initialFieldPosition'];
+    Map<String, dynamic>? initialFieldPosition;
+    if (rawInitialFieldPosition is Map<String, dynamic>) {
+      initialFieldPosition = rawInitialFieldPosition;
+    } else {
+      initialFieldPosition = null;
+    }
     return ApiGamePiece(
       uuid: uuid,
       role: json['role'] as String?,
@@ -170,8 +177,7 @@ class ApiGamePiece {
       piece: json['piece'] as String?,
       pieceName: json['pieceName'] as String?,
       initialField: json['initialField'] as String?,
-      initialFieldPosition:
-          json['initialFieldPosition'] as Map<String, dynamic>?,
+      initialFieldPosition: initialFieldPosition,
     );
   }
 
@@ -521,10 +527,29 @@ class ManagementApiService {
       );
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body) as List<dynamic>;
-        final pieces = data
-            .map((e) => ApiGamePiece.fromJson(e as Map<String, dynamic>))
-            .toList();
+        final decoded = json.decode(response.body);
+        List<dynamic> dataList;
+        if (decoded is List) {
+          dataList = decoded;
+        } else if (decoded is Map && decoded.containsKey('gamePieces')) {
+          // Some APIs may wrap the list in a key
+          dataList = decoded['gamePieces'] as List<dynamic>;
+        } else {
+          throw Exception(
+              'Unexpected response format for game pieces: ${response.body}');
+        }
+        final pieces = <ApiGamePiece>[];
+        for (final e in dataList) {
+          if (e is Map<String, dynamic>) {
+            try {
+              pieces.add(ApiGamePiece.fromJson(e));
+            } catch (err) {
+              print('⚠️ Skipped invalid game piece: $err');
+            }
+          } else {
+            print('⚠️ Skipped non-map game piece: $e');
+          }
+        }
         print('✓ Retrieved ${pieces.length} game pieces');
         for (final piece in pieces) {
           print('   • $piece');
