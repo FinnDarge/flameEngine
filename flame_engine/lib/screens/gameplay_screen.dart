@@ -7,6 +7,7 @@ import '../services/nfc_service.dart';
 import '../models/dungeon_game.dart';
 import '../widgets/token_and_board_app_bar.dart';
 import '../widgets/inventory_overlay.dart';
+import '../widgets/session_info_footer.dart';
 
 /// Gameplay screen for the actual game
 class GameplayScreen extends StatefulWidget {
@@ -193,6 +194,8 @@ class _GameplayScreenState extends State<GameplayScreen> {
               ],
             ),
           ),
+          // Session info footer
+          SessionInfoFooter(gameState: widget.gameState),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -231,7 +234,8 @@ class _GameplayScreenState extends State<GameplayScreen> {
                       end: Alignment.bottomRight,
                     ),
                     shape: BoxShape.circle,
-                    border: Border.all(color: const Color(0xFF1a2332), width: 2),
+                    border:
+                        Border.all(color: const Color(0xFF1a2332), width: 2),
                     boxShadow: [
                       BoxShadow(
                         color: const Color(0xFF00d9ff).withValues(alpha: 0.5),
@@ -240,7 +244,8 @@ class _GameplayScreenState extends State<GameplayScreen> {
                       ),
                     ],
                   ),
-                  constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
+                  constraints:
+                      const BoxConstraints(minWidth: 20, minHeight: 20),
                   child: Center(
                     child: Text(
                       '${player.inventory.usedSlots}',

@@ -6,6 +6,7 @@ import '../services/mock_nfc_data.dart' show kMockNfcCharacterList;
 import '../services/session_api_service.dart' show SessionApiService, ApiRole;
 import '../services/management_api_service.dart' show ApiPiece;
 import '../widgets/token_and_board_app_bar.dart';
+import '../widgets/session_info_footer.dart';
 
 /// Character selection screen for claiming a character
 class CharacterSelectionScreen extends StatefulWidget {
@@ -240,21 +241,8 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
       }
 
       setState(() {
-        // When scanning a new token, unclaim the previously scanned role
-        if (_highlightedRoleUuid != null &&
-            _highlightedRoleUuid != highlightedRoleUuid) {
-          _claimedRoleUuids.remove(_highlightedRoleUuid);
-          print('🔓 Unclaimed previous role: $_highlightedRoleUuid');
-        }
-
         _scannedTagId = tagId;
         _highlightedRoleUuid = highlightedRoleUuid;
-        // Mark the newly scanned role as claimed
-        if (highlightedRoleUuid != null &&
-            !_claimedRoleUuids.contains(highlightedRoleUuid)) {
-          _claimedRoleUuids.add(highlightedRoleUuid);
-          print('🔒 Claimed new role: $highlightedRoleUuid');
-        }
         nfcStatus = name != null ? 'Tag scanned: $name' : 'Tag scanned: $tagId';
       });
     });
@@ -272,6 +260,13 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
 
     if (sessionUuid == null || userKey == null) {
       setState(() => _joinError = 'Session or player info missing');
+      return;
+    }
+
+    // Check if the role is already claimed by someone else
+    if (_claimedRoleUuids.contains(_highlightedRoleUuid)) {
+      setState(() =>
+          _joinError = 'This role has already been claimed by another player');
       return;
     }
 
@@ -420,9 +415,9 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
                 Text(
                   _hasJoined ? 'Character Locked' : 'Select Your Character',
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: _hasJoined ? Colors.amber : Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
+                        color: _hasJoined ? Colors.amber : Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
@@ -496,9 +491,8 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
                             final isClaimed = _claimedRoleUuids.contains(
                               role.uuid,
                             );
-                            final isScanned = _highlightedRoleUuid == role.uuid;
-
-                            // Determine colors based on state
+                            final isScanned = _highlightedRoleUuid ==
+                                role.uuid; // Determine colors based on state
                             late Color backgroundColor;
                             late Color borderColor;
                             late Color textColor;
@@ -506,8 +500,8 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
 
                             if (isScanned) {
                               // Scanned/claimed state
-                              backgroundColor = Colors.yellow.shade900
-                                  .withOpacity(0.5);
+                              backgroundColor =
+                                  Colors.yellow.shade900.withOpacity(0.5);
                               borderColor = Colors.yellow.shade500;
                               textColor = Colors.yellow.shade100;
                               iconColor = Colors.yellow.shade300;
@@ -521,8 +515,8 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
                               iconColor = Colors.red.shade300;
                             } else {
                               // Available state
-                              backgroundColor = Colors.green.shade900
-                                  .withOpacity(0.4);
+                              backgroundColor =
+                                  Colors.green.shade900.withOpacity(0.4);
                               borderColor = Colors.green.shade700;
                               textColor = Colors.green.shade300;
                               iconColor = Colors.green.shade300;
@@ -547,8 +541,8 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
                                       margin: const EdgeInsets.only(bottom: 8),
                                       child: ClipRRect(
                                         borderRadius: BorderRadius.circular(8),
-                                        child:
-                                            _getRoleImagePath(role.name) != null
+                                        child: _getRoleImagePath(role.name) !=
+                                                null
                                             ? Image.asset(
                                                 _getRoleImagePath(role.name)!,
                                                 fit: BoxFit.cover,
@@ -646,9 +640,9 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
                       ),
                     ],
                     ElevatedButton.icon(
-                      onPressed:
-                          (_hasJoined ||
-                              (_scannedTagId != null && !_joiningSession))
+                      onPressed: (_hasJoined ||
+                              (_highlightedRoleUuid != null &&
+                                  !_joiningSession))
                           ? _onContinue
                           : null,
                       icon: _joiningSession
@@ -665,9 +659,9 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
                           : const Icon(Icons.check),
                       label: const Text('Continue'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            (_hasJoined ||
-                                (_scannedTagId != null && !_joiningSession))
+                        backgroundColor: (_hasJoined ||
+                                (_highlightedRoleUuid != null &&
+                                    !_joiningSession))
                             ? Colors.green
                             : Colors.grey.shade700,
                         padding: const EdgeInsets.symmetric(
@@ -681,41 +675,8 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
               ],
             ),
           ),
-          // Session Code Display
-          if (widget.gameState.sessionId != null ||
-              widget.gameState.sessionUuid != null)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-              color: const Color(0xFF1a1a1a),
-              child: Column(
-                children: [
-                  Text(
-                    'Session Code',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.6),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  SelectableText(
-                    widget.gameState.sessionId ??
-                        widget.gameState.sessionUuid ??
-                        '',
-                    style: const TextStyle(
-                      color: Colors.cyan,
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: 'Courier',
-                      letterSpacing: 1,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ),
+          // Session info footer
+          SessionInfoFooter(gameState: widget.gameState),
         ],
       ),
     );

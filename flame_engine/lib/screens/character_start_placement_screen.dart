@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/character.dart';
 import '../models/game_state.dart';
 import '../widgets/token_and_board_app_bar.dart';
+import '../widgets/session_info_footer.dart';
 
 String _characterAsset(CharacterClass? cls) =>
     cls?.imagePath ?? 'assets/images/characters/ControllerSingle.png';
@@ -38,176 +39,187 @@ class CharacterStartPlacementScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.grey.shade900,
       appBar: TokenAndBoardAppBar(onBackPressed: onBack),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // Page header
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
-              child: Text(
-                'Game Setup',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-            const Padding(
-              padding: EdgeInsets.only(bottom: 24),
-              child: Text(
-                'Complete both steps below before starting',
-                style: TextStyle(color: Colors.white70, fontSize: 14),
-                textAlign: TextAlign.center,
-              ),
-            ),
-
-            // Step 1: Grid tile arrangement
-            _stepCard(
-              context,
-              step: 1,
-              title: 'Arrange Your Grid Tiles',
-              subtitle: _isTutorial
-                  ? 'One 2x2 grid tile forms the complete game board'
-                  : 'Four 2x2 grid tiles form a 4x4 game board',
-              color: Colors.blue.shade700,
+      body: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
               child: Column(
                 children: [
+                  // Page header
                   Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    child: _isTutorial
-                        ? _buildSetupTutorialGrid()
-                        : _buildSetupClassicGrid(),
-                  ),
-                  _instructionsBox(
-                    title: 'Setup Instructions:',
-                    items: _isTutorial
-                        ? [
-                            'Place Grid Tile A (blue) — the complete 2x2 game board',
-                            'Tap "Start Game" below when arranged',
-                          ]
-                        : [
-                            'Arrange 4 grid tiles (A-D), each 2x2, to form a 4x4 board',
-                            'Tile A: top-left  |  Tile B: top-right',
-                            'Tile C: bottom-left  |  Tile D: bottom-right',
-                            'Tap "Start Game" below when arranged',
-                          ],
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // Step 2: Character placement
-            _stepCard(
-              context,
-              step: 2,
-              title: 'Place Your Character',
-              subtitle: 'Put your $characterName figure on the starting tile',
-              color: Colors.green.shade700,
-              child: Column(
-                children: [
-                  // Character badge
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: characterColor.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: characterColor, width: 1.5),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: Image.asset(
-                              _characterAsset(character?.characterClass),
-                              width: 40,
-                              height: 40,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                characterName,
-                                style: TextStyle(
-                                  color: characterColor,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 18,
-                                ),
+                    padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+                    child: Text(
+                      'Game Setup',
+                      style:
+                          Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
                               ),
-                              if (character != null)
-                                Text(
-                                  character.characterClass.name,
-                                  style: const TextStyle(
-                                    color: Colors.white54,
-                                    fontSize: 12,
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 24),
+                    child: Text(
+                      'Complete both steps below before starting',
+                      style: TextStyle(color: Colors.white70, fontSize: 14),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+
+                  // Step 1: Grid tile arrangement
+                  _stepCard(
+                    context,
+                    step: 1,
+                    title: 'Arrange Your Grid Tiles',
+                    subtitle: _isTutorial
+                        ? 'One 2x2 grid tile forms the complete game board'
+                        : 'Four 2x2 grid tiles form a 4x4 game board',
+                    color: Colors.blue.shade700,
+                    child: Column(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          child: _isTutorial
+                              ? _buildSetupTutorialGrid()
+                              : _buildSetupClassicGrid(),
+                        ),
+                        _instructionsBox(
+                          title: 'Setup Instructions:',
+                          items: _isTutorial
+                              ? [
+                                  'Place Grid Tile A (blue) — the complete 2x2 game board',
+                                  'Tap "Start Game" below when arranged',
+                                ]
+                              : [
+                                  'Arrange 4 grid tiles (A-D), each 2x2, to form a 4x4 board',
+                                  'Tile A: top-left  |  Tile B: top-right',
+                                  'Tile C: bottom-left  |  Tile D: bottom-right',
+                                  'Tap "Start Game" below when arranged',
+                                ],
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Step 2: Character placement
+                  _stepCard(
+                    context,
+                    step: 2,
+                    title: 'Place Your Character',
+                    subtitle:
+                        'Put your $characterName figure on the starting tile',
+                    color: Colors.green.shade700,
+                    child: Column(
+                      children: [
+                        // Character badge
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              color: characterColor.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(8),
+                              border:
+                                  Border.all(color: characterColor, width: 1.5),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(4),
+                                  child: Image.asset(
+                                    _characterAsset(character?.characterClass),
+                                    width: 40,
+                                    height: 40,
+                                    fit: BoxFit.cover,
                                   ),
                                 ),
-                            ],
+                                const SizedBox(width: 12),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      characterName,
+                                      style: TextStyle(
+                                        color: characterColor,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 18,
+                                      ),
+                                    ),
+                                    if (character != null)
+                                      Text(
+                                        character.characterClass.name,
+                                        style: const TextStyle(
+                                          color: Colors.white54,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
-                        ],
+                        ),
+
+                        // Grid diagram with starting position
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: _isTutorial
+                              ? _buildPlacementTutorialGrid()
+                              : _buildPlacementClassicGrid(),
+                        ),
+
+                        _instructionsBox(
+                          title: 'Placement Instructions:',
+                          items: [
+                            'Locate position 1 — the top-left cell of the board',
+                            'Place your $characterName figure on that tile',
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 32),
+
+                  // Start Game button
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: onReady,
+                        icon: const Icon(Icons.play_arrow),
+                        label: const Text('Start Game'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 48,
+                            vertical: 14,
+                          ),
+                          textStyle: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ),
                   ),
 
-                  // Grid diagram with starting position
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: _isTutorial
-                        ? _buildPlacementTutorialGrid()
-                        : _buildPlacementClassicGrid(),
-                  ),
-
-                  _instructionsBox(
-                    title: 'Placement Instructions:',
-                    items: [
-                      'Locate position 1 — the top-left cell of the board',
-                      'Place your $characterName figure on that tile',
-                    ],
-                  ),
+                  const SizedBox(height: 40),
                 ],
               ),
             ),
-
-            const SizedBox(height: 32),
-
-            // Start Game button
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: onReady,
-                  icon: const Icon(Icons.play_arrow),
-                  label: const Text('Start Game'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 48,
-                      vertical: 14,
-                    ),
-                    textStyle: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 40),
-          ],
-        ),
+          ),
+          // Session info footer
+          SessionInfoFooter(gameState: gameState),
+        ],
       ),
     );
   }
@@ -695,9 +707,8 @@ class CharacterStartPlacementScreen extends StatelessWidget {
           color: isStart ? Colors.greenAccent : borderColor,
           width: isStart ? 3 : 2,
         ),
-        color: isStart
-            ? Colors.greenAccent.withOpacity(0.25)
-            : Colors.transparent,
+        color:
+            isStart ? Colors.greenAccent.withOpacity(0.25) : Colors.transparent,
         boxShadow: isStart
             ? [
                 BoxShadow(
@@ -767,9 +778,8 @@ class CharacterStartPlacementScreen extends StatelessWidget {
           color: isStart ? Colors.greenAccent : borderColor,
           width: isStart ? 2.5 : 1.5,
         ),
-        color: isStart
-            ? Colors.greenAccent.withOpacity(0.25)
-            : Colors.transparent,
+        color:
+            isStart ? Colors.greenAccent.withOpacity(0.25) : Colors.transparent,
         boxShadow: isStart
             ? [
                 BoxShadow(
