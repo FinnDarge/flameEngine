@@ -3,7 +3,9 @@ import 'package:flame/components.dart';
 import '../models/character.dart';
 import '../models/game_state.dart';
 import '../models/grid_tile.dart';
+import '../models/tile_event.dart';
 import '../services/session_api_service.dart';
+import '../services/tile_event_resolver.dart';
 import '../services/tile_input_provider.dart';
 
 /// Coordinates a single field activation flow during gameplay.
@@ -11,12 +13,15 @@ class GameplayOrchestrator {
   final GameState gameState;
   final void Function(Character character) refreshBoardAfterMovement;
   final void Function(int row, int col) completeEvent;
+  final void Function(int row, int col, TileEvent event)? promptEventResolution;
   final List<String> _timeline = [];
+  final TileEventResolver _tileEventResolver = TileEventResolver();
 
   GameplayOrchestrator({
     required this.gameState,
     required this.refreshBoardAfterMovement,
     required this.completeEvent,
+    this.promptEventResolution,
   });
 
   Future<void> onFieldActivated(String fieldId, TileInputSource source) async {
@@ -129,6 +134,17 @@ class GameplayOrchestrator {
       _log('Combat detected on destination tile (enemy present).');
     }
 
+    if (tile.event == null) {
+      final resolved = _tileEventResolver.resolve(
+        instability: gameState.eventInstability,
+        eventType: tile.enemy != null ? TileEventType.encounter : null,
+      );
+      if (resolved != null) {
+        tile.event = resolved.event.copyWith(isRevealed: true);
+        _log('Generated fallback tile event: ${tile.event!.description}');
+      }
+    }
+
     if (tile.event != null && !tile.event!.isCompleted) {
       _log('Tile event detected: ${tile.event!.description}');
     } else {
@@ -147,8 +163,8 @@ class GameplayOrchestrator {
     }
 
     if (context.tile.event != null && !context.tile.event!.isCompleted) {
-      completeEvent(context.row, context.col);
-      _log('Reducer completed tile event on (${context.row}, ${context.col}).');
+      promptEventResolution?.call(context.row, context.col, context.tile.event!);
+      _log('Queued event resolution UI for tile (${context.row}, ${context.col}).');
     }
 
     _log('Reducer applied movement state changes.');
@@ -178,6 +194,73 @@ class GameplayOrchestrator {
     for (final entry in _timeline) {
       print('🧭 GameplayOrchestrator: $entry');
     }
+  }
+
+  TileEventOutcome? resolveEventChoice({
+    required Character character,
+    required GridTile tile,
+    required String choiceId,
+  }) {
+    final event = tile.event;
+    if (event == null || event.isCompleted) {
+      _log('Event reducer skipped: no unresolved event on tile.');
+      _flushTimeline();
+      return null;
+    }
+
+    final selectedOutcome = _resolveOutcome(event, choiceId);
+    final delta = selectedOutcome.stateDelta;
+    if (delta.hp != 0) {
+      if (delta.hp > 0) {
+        character.heal(delta.hp);
+      } else {
+        character.takeDamage(delta.hp.abs());
+      }
+    }
+
+    gameState.eventEnergy += delta.energy;
+    gameState.eventObjective += delta.credits;
+    gameState.eventInstability += delta.instability;
+
+    tile.event = event.copyWith(isCompleted: true);
+    _log('Event reducer applied choice "$choiceId" for event ${event.id}.');
+    _flushTimeline();
+    return selectedOutcome;
+  }
+
+  TileEventOutcome _resolveOutcome(TileEvent event, String choiceId) {
+    String? linkedOutcomeId;
+    for (final choice in event.choices) {
+      if (choice.id == choiceId) {
+        linkedOutcomeId = choice.linkedOutcomeId;
+        break;
+      }
+    }
+
+    if (linkedOutcomeId != null) {
+      for (final outcome in event.outcomes) {
+        if (outcome.id == linkedOutcomeId) {
+          return outcome;
+        }
+      }
+    }
+
+    for (final outcome in event.outcomes) {
+      if (outcome.isDefault) {
+        return outcome;
+      }
+    }
+
+    if (event.outcomes.isNotEmpty) {
+      return event.outcomes.first;
+    }
+
+    return TileEventOutcome(
+      id: '${event.id}_default',
+      text: event.flavor,
+      isDefault: true,
+      stateDelta: event.stateDelta,
+    );
   }
 }
 

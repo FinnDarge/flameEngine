@@ -1,4 +1,5 @@
 import 'package:flame/components.dart';
+import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
 import 'package:flame/flame.dart';
 import '../models/grid_tile.dart' as models;
@@ -6,11 +7,14 @@ import '../models/tile_type.dart';
 
 /// Visual component for a single room (tile) in the dungeon grid
 /// Represents one 10cm x 10cm physical room
-class TileComponent extends PositionComponent {
+class TileComponent extends PositionComponent with TapCallbacks {
   final models.GridTile tile;
   final double cellSize;
   final bool isCorner;
   final String? cornerType; // 'topleft', 'topright', 'bottomleft', 'bottomright'
+  final int row;
+  final int col;
+  final void Function(int row, int col)? onTileTapped;
   
   late RectangleComponent background;
   late RectangleComponent border;
@@ -22,6 +26,9 @@ class TileComponent extends PositionComponent {
     required this.tile,
     required this.cellSize,
     required Vector2 position,
+    required this.row,
+    required this.col,
+    this.onTileTapped,
     this.isCorner = false,
     this.cornerType,
   }) : super(
@@ -108,6 +115,12 @@ class TileComponent extends PositionComponent {
 
     // NFC markers removed - not needed for visual display
     // Character sprites are shown on top of grid
+  }
+
+  @override
+  void onTapUp(TapUpEvent event) {
+    onTileTapped?.call(row, col);
+    super.onTapUp(event);
   }
 
   /// Updates the visual representation when tile state changes
