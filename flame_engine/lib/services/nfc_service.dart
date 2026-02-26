@@ -88,11 +88,22 @@ class NFCService {
         tag.data['isodep']?['identifier'];
 
     if (identifier != null) {
-      return _bytesToHex((identifier as List).cast<int>());
+      final tagId = _bytesToHex((identifier as List).cast<int>());
+      final reversed = _reverseTagId(tagId);
+      print('📱 NFC Tag Scanned:');
+      print('   Forward:  $tagId');
+      print('   Reversed: $reversed');
+      return tagId;
     }
 
     // Fallback: use raw tag data
     return tag.data.toString();
+  }
+
+  /// Reverse tag ID byte order for compatibility checking
+  String _reverseTagId(String tagId) {
+    final bytes = tagId.split(':');
+    return bytes.reversed.join(':');
   }
 
   /// Extract additional data from NFC tag

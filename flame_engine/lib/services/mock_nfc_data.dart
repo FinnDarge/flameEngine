@@ -110,14 +110,22 @@ const String kPhysicalTestTag = '04:62:67:56:CB:2A:81';
 /// Overwrite the mock character data with pieces loaded from the management API.
 /// Call this once after [ManagementApiService.load] completes.
 void applyApiData(ManagementApiService api) {
+  print('═══════════════════════════════════════════════════════════');
+  print('🔄 Applying API data to mock NFC characters...');
+  print('   API pieces available: ${api.pieces.length}');
+  
   if (api.pieces.isEmpty) {
+    print('   ⚠ No API pieces loaded, using mock data');
     // No API data, but add physical tag mapping to Vanguard anyway
     _addPhysicalTagMapping();
+    print('═══════════════════════════════════════════════════════════\n');
     return;
   }
 
+  print('   Processing API pieces:');
   // Update per-piece constants for the two canonical character classes
   for (final piece in api.pieces) {
+    print('   • ${piece.name} (${piece.characterClass}) -> ${piece.nfcTagId}');
     if (piece.characterClass == 'wizard') {
       kWizardNfcTagId = piece.nfcTagId;
       kWizardUuid = piece.uuid;
@@ -154,17 +162,23 @@ void applyApiData(ManagementApiService api) {
   // Rebuild the ordered list
   kMockNfcCharacterList = api.pieces.map((p) => p.toMockPayload()).toList();
 
+  print('\n   ✓ Mock character map rebuilt with ${kMockNfcCharacters.length} entries');
+  print('   ✓ Character list rebuilt with ${kMockNfcCharacterList.length} items');
+  
   // Add physical tag mapping
   _addPhysicalTagMapping();
 
-  print(
-    '✓ Mock NFC data updated from API: '
-    '${kMockNfcCharacters.length} pieces (+ physical test tag)',
-  );
+  print('\n✅ Mock NFC data updated from API successfully!');
+  print('═══════════════════════════════════════════════════════════\n');
 }
 
 /// Add your physical NFC tag as an alias for Vanguard
 void _addPhysicalTagMapping() {
+  print('\n   🏷️  Adding physical test tag mapping:');
+  print('      Tag ID: $kPhysicalTestTag');
+  print('      Character: $kVanguardCharacterName (Vanguard)');
+  print('      UUID: $kVanguardUuid');
+  
   // Add physical tag to the lookup map
   kMockNfcCharacters[kPhysicalTestTag] = {
     'tagId': kPhysicalTestTag,
@@ -173,5 +187,5 @@ void _addPhysicalTagMapping() {
     'characterClass': 'vanguard',
   };
   
-  print('✓ Physical test tag $kPhysicalTestTag mapped to $kVanguardCharacterName');
+  print('      ✓ Physical tag successfully mapped!');
 }

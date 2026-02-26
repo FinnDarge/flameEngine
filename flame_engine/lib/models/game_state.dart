@@ -4,7 +4,7 @@ import 'player.dart';
 import 'game_grid.dart';
 import 'tile_type.dart';
 import 'game_scenario.dart';
-import '../services/management_api_service.dart' show ApiPlayer, ApiBoard;
+import '../services/management_api_service.dart' show ApiPlayer, ApiBoard, ApiPiece;
 import '../utils/sample_items.dart';
 
 /// Manages the overall game state
@@ -38,6 +38,9 @@ class GameState {
 
   /// Boards loaded from the management API.
   List<ApiBoard> apiBoards = const [];
+
+  /// Pieces loaded from the management API (characters with NFC tags).
+  List<ApiPiece> apiPieces = const [];
 
   GameState({required this.grid, Vector2? goal})
     : goalPosition =
@@ -74,8 +77,49 @@ class GameState {
   void addCharacter(Character character) {
     if (characters.length < 4 && !characters.contains(character)) {
       characters.add(character);
-      print('✓ Character added: ${character.name} (${characters.length}/4)');
+      print('✓ Character added: ${character.characterClass.name} (class: ${character.characterClass}) (${characters.length}/4)');
     }
+  }
+
+  /// Reverse NFC tag byte order (e.g., "04:BA:42" <-> "42:BA:04")
+  String _reverseNfcTagId(String tagId) {
+    final bytes = tagId.split(':');
+    return bytes.reversed.join(':');
+  }
+
+  /// Check if two NFC tag IDs match (forward or reverse byte order)
+  bool _nfcTagMatches(String tag1, String tag2) {
+    if (tag1 == tag2) return true;
+    if (tag1 == _reverseNfcTagId(tag2)) return true;
+    if (_reverseNfcTagId(tag1) == tag2) return true;
+    return false;
+  }
+
+  /// Map API character names/colors to CharacterClass enum
+  /// The backend stores pieces by color (Red, White, Blue, Purple)
+  /// but we need to map them to proper class types
+  CharacterClass? _mapApiNameToCharacterClass(String apiName) {
+    final lower = apiName.toLowerCase();
+    
+    // Direct class name matches
+    if (lower == 'warrior') return CharacterClass.warrior;
+    if (lower == 'wizard') return CharacterClass.wizard;
+    if (lower == 'controller') return CharacterClass.controller;
+    if (lower == 'engineer') return CharacterClass.engineer;
+    if (lower == 'striker') return CharacterClass.striker;
+    if (lower == 'vanguard') return CharacterClass.vanguard;
+    
+    // Color name mappings (based on your physical NFC tags)
+    if (lower == 'red') return CharacterClass.vanguard;
+    if (lower == 'white') return CharacterClass.controller;
+    if (lower == 'blue') return CharacterClass.engineer;
+    if (lower == 'purple') return CharacterClass.striker;
+    if (lower == 'green') return CharacterClass.striker;
+    if (lower == 'orange') return CharacterClass.engineer;
+    
+    // Fallback to warrior if unknown
+    print('⚠️ Unknown API character name: $apiName, defaulting to warrior');
+    return CharacterClass.warrior;
   }
 
   /// Claim a character for the local player
@@ -86,18 +130,50 @@ class GameState {
       return false;
     }
 
-    // Find matching character class
+    // Find matching character class from API pieces FIRST
     CharacterClass? characterClass;
-    for (var cls in CharacterClass.values) {
-      if (cls.nfcTagId == nfcTagId) {
-        characterClass = cls;
-        break;
+    String? characterName;
+    
+    if (apiPieces.isNotEmpty) {
+      print('🔍 Looking up NFC tag in API pieces: $nfcTagId');
+      print('   (Also checking reversed: ${_reverseNfcTagId(nfcTagId)})');
+      for (var piece in apiPieces) {
+        print('   Checking: ${piece.nfcTagId} (${piece.name})');
+        if (_nfcTagMatches(piece.nfcTagId, nfcTagId)) {
+          // Map from API piece name to CharacterClass enum
+          characterClass = _mapApiNameToCharacterClass(piece.name);
+          characterName = piece.name;
+          print('   ✓ MATCH FOUND: ${piece.name} -> ${characterClass?.name}');
+          print('      API tag: ${piece.nfcTagId}');
+          print('      Scanned: $nfcTagId');
+          break;
+        }
       }
-    }
-
-    if (characterClass == null) {
-      print('⚠ Not a character NFC tag: $nfcTagId');
-      return false;
+      
+      if (characterClass == null) {
+        print('❌ NFC tag not found in API pieces!');
+        print('   Scanned tag: $nfcTagId');
+        print('   Reversed:    ${_reverseNfcTagId(nfcTagId)}');
+        print('   Available API pieces:');
+        for (var p in apiPieces) {
+          print('      - ${p.name}: ${p.nfcTagId}');
+        }
+        return false;
+      }
+    } else {
+      // Fallback to mock data if no API pieces loaded
+      print('⚠ No API pieces loaded, using mock CharacterClass enum');
+      for (var cls in CharacterClass.values) {
+        if (_nfcTagMatches(cls.nfcTagId, nfcTagId)) {
+          characterClass = cls;
+          break;
+        }
+      }
+      
+      if (characterClass == null) {
+        print('⚠ Not a character NFC tag: $nfcTagId');
+        return false;
+      }
     }
 
     // Check if already claimed by someone
@@ -119,7 +195,7 @@ class GameState {
     localPlayer.claimCharacter(character);
     addCharacter(character);
 
-    print('✓ Player claimed: ${character.name}');
+    print('✓ Player claimed: ${character.characterClass.name} (API name: ${characterName ?? "enum"})');
     return true;
   }
 
