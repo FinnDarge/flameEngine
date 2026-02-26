@@ -156,9 +156,12 @@ class _SessionSelectionScreenState extends State<SessionSelectionScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF1a1a1a),
       appBar: TokenAndBoardAppBar(onBackPressed: widget.onBack),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        behavior: HitTestBehavior.opaque,
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -417,7 +420,8 @@ class _SessionSelectionScreenState extends State<SessionSelectionScreen> {
             ],
           ),
         ),
-      ),
+        ),  // SafeArea
+      ),  // GestureDetector
     );
   }
 

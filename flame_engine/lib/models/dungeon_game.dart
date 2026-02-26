@@ -269,6 +269,10 @@ class DungeonGame extends FlameGame {
     }
 
     final characterClass = gameState.mapApiNameToCharacterClass(roleName);
+    if (characterClass == null) {
+      print('⚠ Could not map roleName "$roleName" to a CharacterClass.');
+      return;
+    }
     final character = Character(
       characterClass: characterClass,
       nfcTagId: characterClass.nfcTagId,
