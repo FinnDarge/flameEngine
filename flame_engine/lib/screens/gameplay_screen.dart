@@ -172,7 +172,13 @@ class _GameplayScreenState extends State<GameplayScreen> {
 
   void _handleTileActivationInput(TileActivationInput input) {
     // Pass input to game logic (fire and forget)
-    unawaited(widget.game.handleNFCTag(input.tileId, input.data));
+    unawaited(
+      widget.game.handleNFCTag(
+        input.tileId,
+        input.data,
+        source: input.source,
+      ),
+    );
 
     if (!mounted) {
       return;

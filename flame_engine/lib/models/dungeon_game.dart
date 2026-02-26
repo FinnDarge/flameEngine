@@ -7,12 +7,15 @@ import 'character.dart';
 import 'tile_event.dart';
 import '../components/grid_component.dart';
 import '../components/character_sprite_component.dart';
+import '../controllers/gameplay_orchestrator.dart';
 import '../services/management_api_service.dart';
 import '../services/session_api_service.dart';
+import '../services/tile_input_provider.dart';
 
 /// Main Flame game class
 class DungeonGame extends FlameGame {
   late GameState gameState;
+  late final GameplayOrchestrator gameplayOrchestrator;
   GridComponent? gridComponent;
 
   // Track character sprite components
@@ -46,6 +49,11 @@ class DungeonGame extends FlameGame {
     }
 
     gameState = GameState(grid: grid);
+    gameplayOrchestrator = GameplayOrchestrator(
+      gameState: gameState,
+      refreshBoardAfterMovement: refreshBoardAfterMovement,
+      completeEvent: completeEvent,
+    );
   }
 
   @override
@@ -88,7 +96,11 @@ class DungeonGame extends FlameGame {
   }
 
   /// Handle NFC tag detection
-  Future<void> handleNFCTag(String tagId, Map<String, dynamic>? data) async {
+  Future<void> handleNFCTag(
+    String tagId,
+    Map<String, dynamic>? data, {
+    TileInputSource source = TileInputSource.nfc,
+  }) async {
     print('📱 NFC Tag: $tagId');
 
     // Phase 1: Character Selection
@@ -99,9 +111,13 @@ class DungeonGame extends FlameGame {
 
     // Phase 2: Playing - Movement
     if (gameState.phase == GamePhase.playing) {
-      await _handleMovement(tagId);
+      await onFieldActivated(tagId, source);
       return;
     }
+  }
+
+  Future<void> onFieldActivated(String fieldId, TileInputSource source) {
+    return gameplayOrchestrator.onFieldActivated(fieldId, source);
   }
 
   /// Handle character selection phase
@@ -115,98 +131,9 @@ class DungeonGame extends FlameGame {
     }
   }
 
-  /// Handle movement during gameplay
-  Future<void> _handleMovement(String tagId) async {
-    // During gameplay, any NFC tag that's NOT a character is assumed to be a field
-    // Player wants to move their assigned character to that field
-    await _handleFieldTap(tagId);
-  }
-
-  /// Handle tapping a field to move the player's character there
-  Future<void> _handleFieldTap(String cellNfc) async {
-    // Get player's assigned character
-    final character = gameState.localPlayer.character;
-    if (character == null) {
-      print('⚠ No character assigned to you!');
-      return;
-    }
-
-    // Verify it's their turn
-    if (!gameState.isLocalPlayerTurn) {
-      print(
-        '⚠ Not your turn! Current turn: ${gameState.currentTurnCharacter?.name}',
-      );
-      return;
-    }
-
-    // Parse cell NFC tag (format: cell_X_Y where X,Y are 1-indexed)
-    final parts = cellNfc.split('_');
-    if (parts.length != 3 || parts[0] != 'cell') {
-      print('⚠ Invalid field NFC tag: $cellNfc');
-      return;
-    }
-
-    try {
-      final row = int.parse(parts[1]) - 1; // Convert to 0-indexed
-      final col = int.parse(parts[2]) - 1;
-      final destination = Vector2(col.toDouble(), row.toDouble());
-
-      // Get destination tile
-      final tile = gameState.grid.getTile(row, col);
-      if (tile == null) {
-        print('⚠ Invalid tile position!');
-        return;
-      }
-
-      print('🎯 Attempting to move ${character.name} to field ($row, $col)...');
-
-      // Check if we have API session configured
-      if (gameState.sessionId != null &&
-          gameState.playerAccessToken != null &&
-          tile.fieldUuid != null) {
-        // API-driven movement
-        print('🌐 Submitting move to backend API...');
-
-        final sessionApi = SessionApiService();
-        try {
-          final result = await sessionApi.walkToField(
-            sessionUuid: gameState.sessionId!,
-            targetFieldUuid: tile.fieldUuid!,
-            userKey: gameState.playerAccessToken!,
-          );
-          print('✓ Move accepted by server! ${result.message}');
-          // Backend validated the move, update local state
-        } catch (e) {
-          print('❌ Move rejected by server! $e');
-          return;
-        }
-      } else {
-        // Local-only movement (no API session)
-        print('🎮 Local movement validation...');
-      }
-
-      // Attempt local move (either after API approval or local-only)
-      final moved = gameState.moveCharacter(character, destination);
-
-      if (moved) {
-        // Update visual
-        gridComponent?.updateAllTiles();
-
-        // Update character sprite position
-        _updateCharacterSpritePosition(character);
-
-        // End turn
-        gameState.nextTurn();
-
-        // Check victory
-        if (gameState.checkVictory()) {
-          print('🎉 VICTORY! All players reached the goal!');
-          gameState.phase = GamePhase.victory;
-        }
-      }
-    } catch (e) {
-      print('⚠ Error processing move: $e');
-    }
+  void refreshBoardAfterMovement(Character character) {
+    gridComponent?.updateAllTiles();
+    _updateCharacterSpritePosition(character);
   }
 
   /// Load other players from the session and create character sprites for them
