@@ -201,7 +201,7 @@ class _SessionSelectionScreenState extends State<SessionSelectionScreen> {
                 child: _players.isEmpty
                     ? _infoText('No players found. Check your API connection.')
                     : DropdownButtonFormField<ApiPlayer>(
-                        initialValue: _selectedPlayer,
+                        value: _selectedPlayer,
                         dropdownColor: const Color(0xFF2d2d2d),
                         style: const TextStyle(color: Colors.white),
                         decoration: _inputDecoration('Select player'),
@@ -240,7 +240,7 @@ class _SessionSelectionScreenState extends State<SessionSelectionScreen> {
                             'No games found. Check your API connection.',
                           )
                         : DropdownButtonFormField<ApiGame>(
-                            initialValue: _selectedGame,
+                            value: _selectedGame,
                             dropdownColor: const Color(0xFF2d2d2d),
                             style: const TextStyle(color: Colors.white),
                             decoration: _inputDecoration('Select game'),

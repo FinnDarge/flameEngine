@@ -259,12 +259,8 @@ class _GameplayScreenState extends State<GameplayScreen> {
     final Map<String, String> roleToPlayerName = {
       for (final sp in widget.gameState.sessionPlayers)
         sp.role: (widget.gameState.apiPlayers
-                .firstWhere(
-                  (ap) => ap.uuid == sp.player,
-                  orElse: () => widget.gameState.apiPlayers.isNotEmpty
-                      ? widget.gameState.apiPlayers.first
-                      : null,
-                )
+                .where((ap) => ap.uuid == sp.player)
+                .firstOrNull
                 ?.name ??
             'Unknown')
     };
@@ -368,16 +364,10 @@ class _GameplayScreenState extends State<GameplayScreen> {
                               .where((sp) => sp.player != localPlayerUuid)
                               .map((sp) {
                             final roleName = widget.gameState.gameStartPositions
-                                    .firstWhere(
-                                      (gp) =>
-                                          gp.role == sp.role &&
-                                          gp.roleName != null,
-                                      orElse: () => widget.gameState
-                                              .gameStartPositions.isNotEmpty
-                                          ? widget.gameState.gameStartPositions
-                                              .first
-                                          : null,
-                                    )
+                                    .where((gp) =>
+                                        gp.role == sp.role &&
+                                        gp.roleName != null)
+                                    .firstOrNull
                                     ?.roleName ??
                                 'Role';
                             final playerName =
