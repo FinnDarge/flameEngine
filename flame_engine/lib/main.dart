@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'services/audio_service.dart';
 import 'models/game_state.dart';
 import 'models/dungeon_game.dart';
 import 'services/nfc_service.dart';
@@ -10,9 +11,20 @@ import 'screens/character_selection_screen.dart';
 import 'screens/character_start_placement_screen.dart';
 import 'screens/gameplay_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await AudioService().init();
   runApp(
-    const MaterialApp(debugShowCheckedModeBanner: false, home: GameNavigator()),
+    // Listener at the root catches the very first pointer-down event and
+    // starts audio – required by the browser autoplay policy on web.
+    Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: (_) => AudioService().start(),
+      child: const MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: GameNavigator(),
+      ),
+    ),
   );
 }
 
